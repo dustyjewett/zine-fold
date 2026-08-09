@@ -1,6 +1,7 @@
 import './style.css';
 import { PDFDocument } from 'pdf-lib';
 import { planBooklet } from './imposition/booklet.ts';
+import { DUPLEX12_PAGES_PER_SHEET, planDuplex12 } from './imposition/duplex12.ts';
 import { MINI8_PAGES_PER_SHEET, planMini8 } from './imposition/mini8.ts';
 import { planICut } from './imposition/i-cut.ts';
 import { planRiverCut } from './imposition/river-cut.ts';
@@ -72,11 +73,13 @@ for (const paper of PAPERS) {
   ui.paper.append(option);
 }
 
-type Layout = 'mini8' | 'river-cut' | 'i-cut' | 'booklet';
+type Layout = 'mini8' | 'river-cut' | 'i-cut' | 'duplex12' | 'booklet';
 
 function layout(): Layout {
   const value = ui.layout.value;
-  return value === 'booklet' || value === 'river-cut' || value === 'i-cut' ? value : 'mini8';
+  return value === 'booklet' || value === 'river-cut' || value === 'i-cut' || value === 'duplex12'
+    ? value
+    : 'mini8';
 }
 
 function isBooklet(): boolean {
@@ -87,14 +90,22 @@ function is16Page(): boolean {
   return layout() === 'river-cut' || layout() === 'i-cut';
 }
 
+/** Layouts printed on both sides, and so subject to the flip setting. */
+function isDuplex(): boolean {
+  return isBooklet() || layout() === 'duplex12';
+}
+
 /** Pages one sheet holds; for the booklet it depends on the signature size. */
 function pagesPerSheet(): number {
-  return is16Page() ? 16 : MINI8_PAGES_PER_SHEET;
+  if (is16Page()) return 16;
+  return layout() === 'duplex12' ? DUPLEX12_PAGES_PER_SHEET : MINI8_PAGES_PER_SHEET;
 }
 
 function syncVisibility(): void {
   for (const node of document.querySelectorAll<HTMLElement>('[data-when]')) {
-    node.hidden = node.dataset.when !== ui.layout.value;
+    // data-when may list several layouts, e.g. "booklet duplex12".
+    const shown = (node.dataset.when ?? '').split(/\s+/);
+    node.hidden = !shown.includes(ui.layout.value);
   }
 }
 
@@ -127,6 +138,10 @@ function buildPlan(pageCount: number): ImpositionPlan {
       return planRiverCut(pageCount, { paper, margins, guides });
     case 'i-cut':
       return planICut(pageCount, { paper, margins, guides });
+    case 'duplex12':
+      return planDuplex12(pageCount, {
+        paper, margins, guides, rotateBacks: ui.flip.value === 'long',
+      });
     default:
       return planMini8(pageCount, { paper, margins, guides });
   }
@@ -143,6 +158,7 @@ function panelSize(): { width: number; height: number } {
   const { width, height } = sheetSize();
   switch (layout()) {
     case 'booklet': return { width: width / 2, height };
+    case 'duplex12': return { width: width / 4, height: height / 2 };
     case 'river-cut':
     case 'i-cut': return { width: width / 4, height: height / 4 };
     default: return { width: width / 4, height: height / 2 };
@@ -208,7 +224,7 @@ async function regenerate(): Promise<void> {
     const indices = parsePageRange(ui.range.value, state.source.getPageCount());
     const doc = await getSubset(indices);
     const plan = buildPlan(indices.length);
-    const split = (isBooklet() ? ui.split.value : 'combined') as SplitMode;
+    const split = (isDuplex() ? ui.split.value : 'combined') as SplitMode;
 
     const result = await renderPlan(
       doc,
@@ -249,7 +265,8 @@ async function regenerate(): Promise<void> {
 
 function describePlan(plan: ImpositionPlan, pageCount: number, result: RenderResult): string {
   const parts: string[] = [];
-  const physicalSheets = isBooklet() ? plan.sheets.length / 2 : plan.sheets.length;
+  // A back is the reverse of a sheet already counted, not another sheet.
+  const physicalSheets = plan.sheets.filter((s) => s.side !== 'back').length;
   parts.push(`${pageCount} page${pageCount === 1 ? '' : 's'} → ${physicalSheets} sheet${physicalSheets === 1 ? '' : 's'}`);
 
   if (isBooklet()) {
@@ -257,9 +274,10 @@ function describePlan(plan: ImpositionPlan, pageCount: number, result: RenderRes
     parts.push(`${sigs} signature${sigs === 1 ? '' : 's'}`);
     parts.push(`${plan.sheets.length} sides, duplex`);
   } else {
-    const zines = plan.sheets.length;
-    if (zines > 1) parts.push(`${zines} separate mini-zines of ${pagesPerSheet()} pages`);
-    parts.push('single-sided');
+    if (physicalSheets > 1) {
+      parts.push(`${physicalSheets} separate mini-zines of ${pagesPerSheet()} pages`);
+    }
+    parts.push(isDuplex() ? `${plan.sheets.length} sides, duplex` : 'single-sided');
     const slits = plan.sheets[0]?.guides.filter((g) => g.kind === 'cut').length ?? 0;
     if (slits > 0) parts.push(`${slits} slit${slits === 1 ? '' : 's'} per sheet`);
   }

@@ -40,6 +40,7 @@
               <option value="mini8">8-page mini-zine — 1 sheet, single-sided</option>
               <option value="river-cut">16-page mini-zine — River Cut (1 sheet, 3 slits)</option>
               <option value="i-cut">16-page mini-zine — -Ɪ- cut (1 sheet, 5 slits)</option>
+              <option value="duplex12">12-page mini-zine — duplex, 1 sheet, 3 cuts</option>
               <option value="booklet">Half-page booklet — saddle stitch, duplex</option>
             </select>
           </div>
@@ -76,7 +77,7 @@
           </div>
         </fieldset>
 
-        <fieldset data-when="booklet">
+        <fieldset data-when="booklet duplex12">
           <legend>Duplex</legend>
           <div class="field">
             <label for="flip">Printer flip setting</label>
@@ -85,8 +86,9 @@
               <option value="long">Flip on long edge — rotate backs 180°</option>
             </select>
             <p class="hint">
-              Landscape sheets normally want <strong>short-edge</strong> flip. If a test fold comes
-              out with every other side upside down, switch this — don't change the printer.
+              Landscape sheets normally want <strong>short-edge</strong> flip, which is also what
+              the 12-page fold assumes. If a test fold comes out with every other side upside
+              down, switch this — don't change the printer.
             </p>
           </div>
           <div class="field">

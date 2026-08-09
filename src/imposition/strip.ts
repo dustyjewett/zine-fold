@@ -100,26 +100,44 @@ export function deriveGuides(map: PanelMap, width: number, height: number): Guid
   }
   guides.push(...cuts);
 
-  // Fold ticks bleed in from the sheet edge, but only where a slit has not
-  // already reached that edge — otherwise the mark contradicts the cut.
+  guides.push(...foldTicks(cuts, cols, rows, width, height));
+  return guides;
+}
+
+/**
+ * Short marks where each fold meets the paper's edge — but only where a slit
+ * has not already reached that edge, since a fold mark on top of a cut
+ * contradicts it.
+ */
+export function foldTicks(
+  cuts: Guide[],
+  cols: number,
+  rows: number,
+  width: number,
+  height: number,
+): Guide[] {
+  const pw = width / cols;
+  const ph = height / rows;
   const tick = Math.min(14, Math.min(pw, ph) * 0.09);
+  const ticks: Guide[] = [];
+
   const touches = (x: number, y: number) =>
     cuts.some((c) =>
       Math.min(c.x1, c.x2) - 0.01 <= x && x <= Math.max(c.x1, c.x2) + 0.01 &&
       Math.min(c.y1, c.y2) - 0.01 <= y && y <= Math.max(c.y1, c.y2) + 0.01);
 
   for (let row = 0; row < rows - 1; row++) {
-    const y = boundaryY(row);
-    if (!touches(0, y)) guides.push({ kind: 'fold', x1: 0, y1: y, x2: tick, y2: y });
-    if (!touches(width, y)) guides.push({ kind: 'fold', x1: width - tick, y1: y, x2: width, y2: y });
+    const y = (rows - 1 - row) * ph;
+    if (!touches(0, y)) ticks.push({ kind: 'fold', x1: 0, y1: y, x2: tick, y2: y });
+    if (!touches(width, y)) ticks.push({ kind: 'fold', x1: width - tick, y1: y, x2: width, y2: y });
   }
   for (let col = 0; col < cols - 1; col++) {
     const x = (col + 1) * pw;
-    if (!touches(x, 0)) guides.push({ kind: 'fold', x1: x, y1: 0, x2: x, y2: tick });
-    if (!touches(x, height)) guides.push({ kind: 'fold', x1: x, y1: height - tick, x2: x, y2: height });
+    if (!touches(x, 0)) ticks.push({ kind: 'fold', x1: x, y1: 0, x2: x, y2: tick });
+    if (!touches(x, height)) ticks.push({ kind: 'fold', x1: x, y1: height - tick, x2: x, y2: height });
   }
 
-  return guides;
+  return ticks;
 }
 
 export function planStripZine(

@@ -6,13 +6,14 @@ Turns a PDF into a **fold-ready** PDF: one output page per side of paper, alread
 imposed. You print it 1-per-sheet with plain duplex — no "multiple pages per
 sheet", no booklet mode, nothing for the print driver to get wrong.
 
-Four layouts:
+Five layouts:
 
 | Layout | Sheets | Sides | Result |
 | --- | --- | --- | --- |
 | **8-page mini-zine** | 1 per zine | single-sided | Classic fold-and-slit pocket zine |
 | **16-page — River Cut** | 1 per zine | single-sided | 4×4 grid, 3 slits, snaking route |
 | **16-page — -Ɪ- cut** | 1 per zine | single-sided | 4×4 grid, 5 slits, spiral route |
+| **12-page duplex** | 1 per zine | duplex | 4×2 per side, 3 cuts, 4 hidden faces |
 | **Half-page booklet** | 1..N | duplex | Saddle-stitched booklet, 1..N signatures |
 
 It runs entirely in the browser. Nothing is uploaded; the PDF never leaves the
@@ -220,6 +221,44 @@ Adapted from the Idaho Commission for Libraries template, renumbered so the
 front cover is page 1 and the back cover is page 16.
 
 A document longer than 16 pages becomes several independent zines, either way.
+
+## The 12-page duplex fold
+
+The only mini-zine here that uses both sides of the paper. Eight panels per side
+on a landscape sheet — same panel size as the 8-page zine, 2.75 × 4.25 in on
+Letter — folded and cut into twelve pages.
+
+```
+FRONT                          BACK  (sheet flipped left-to-right)
++----+----+----+----+          +----+----+----+----+
+|  8 |  7 |  6 |  5 |          |  4 |    |    |  9 |   top row prints
++----+----+----+----+          +----+----+----+----+   upside down
+| 11 | 12 |  1 |  2 |          |  3 |    |    | 10 |
++----+----+----+----+          +----+----+----+----+
+
+cuts:  a short dash in from each end of the centre line,
+       and a stroke rising from its middle to the top edge
+
+     +----+----+----+----+
+     |    |    |    |    |
+     +====+---- | ---+====+     <- dashes at both ends, stroke going up
+     |    |    |    |    |
+     +----+----+----+----+
+```
+
+Eight panels carry sixteen faces but only twelve pages. Flipping the sheet
+left-to-right pairs front column *c* with back column *3−c*, putting **8/9**,
+**5/4**, **11/10** and **2/3** back-to-back on four leaves.
+
+The middle two columns have nothing on their reverse. Those four faces — the
+front cover, the back cover and the centre spread — finish buried in the folds,
+visible only if you unfold the whole sheet. That makes them a good hiding place
+if you want a secret panel; leave a note there by hand after printing.
+
+Print it **double-sided** and match the *Printer flip setting*, exactly as for
+the booklet. Short-edge flip is what the layout assumes.
+
+Longer documents become several independent 12-page zines.
 
 ## Assembling the booklet
 

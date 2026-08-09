@@ -11,6 +11,7 @@ import { readFile } from 'node:fs/promises';
 import { PDFDocument, degrees } from 'pdf-lib';
 import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { planBooklet } from '../src/imposition/booklet.ts';
+import { planDuplex12 } from '../src/imposition/duplex12.ts';
 import { planICut } from '../src/imposition/i-cut.ts';
 import { planMini8 } from '../src/imposition/mini8.ts';
 import { planRiverCut } from '../src/imposition/river-cut.ts';
@@ -294,6 +295,113 @@ section('16-page mini-zine: padding and multiple zines');
     `${second[0]}..${second[15]}`);
 }
 
+section('12-page duplex mini-zine: both sides');
+{
+  const paper = getPaper('letter');
+  const sheet = landscape(paper);
+  const pw = sheet.width / 4;
+  const ph = sheet.height / 2;
+
+  const src = await PDFDocument.load(await buildTestDocument(12, pw, ph));
+  const plan = planDuplex12(12, { paper, margins: NO_MARGINS, guides: true, rotateBacks: false });
+  const out = await renderPlan(src, plan, { fit: 'contain', numberOverlay: false }, 'combined', 'd');
+
+  check('12 pages → one sheet, two sides', plan.sheets.length === 2, `got ${plan.sheets.length}`);
+  check('sides are front then back',
+    plan.sheets.map((s) => s.side).join(',') === 'front,back');
+  check('no blanks needed', plan.blanksAdded === 0);
+
+  const cell = (g: Glyph) => ({ col: Math.floor(g.x / pw), row: g.y >= ph ? 0 : 1 });
+
+  const front = await readGlyphs(out.files[0]!.bytes, 1);
+  const wantFront: Record<number, [number, number]> = {
+    8: [0, 0], 7: [0, 1], 6: [0, 2], 5: [0, 3],
+    11: [1, 0], 12: [1, 1], 1: [1, 2], 2: [1, 3],
+  };
+  let ok = 0;
+  for (const [n, [row, col]] of Object.entries(wantFront)) {
+    const g = findNumber(front, Number(n));
+    const at = g && cell(g);
+    const wantAngle = row === 0 ? 180 : 0;
+    if (at && at.row === row && at.col === col && g.angle === wantAngle) ok++;
+    else check(`front page ${n} -> row ${row} col ${col}`, false,
+      `got row ${at?.row} col ${at?.col} @${g?.angle}deg`);
+  }
+  check('all eight front panels correct', ok === 8, `${ok}/8`);
+
+  const back = await readGlyphs(out.files[0]!.bytes, 2);
+  const wantBack: Record<number, [number, number]> = {
+    4: [0, 0], 9: [0, 3], 3: [1, 0], 10: [1, 3],
+  };
+  let okBack = 0;
+  for (const [n, [row, col]] of Object.entries(wantBack)) {
+    const g = findNumber(back, Number(n));
+    const at = g && cell(g);
+    const wantAngle = row === 0 ? 180 : 0;
+    if (at && at.row === row && at.col === col && g.angle === wantAngle) okBack++;
+    else check(`back page ${n} -> row ${row} col ${col}`, false,
+      `got row ${at?.row} col ${at?.col} @${g?.angle}deg`);
+  }
+  check('all four back panels correct', okBack === 4, `${okBack}/4`);
+
+  const middles = back.filter((g) => /^\d+$/.test(g.text)).map((g) => cell(g).col);
+  check('back middle columns are empty', !middles.includes(1) && !middles.includes(2),
+    `columns used: ${[...new Set(middles)].sort().join(',')}`);
+
+  // Flipping left-to-right pairs front column c with back column 3-c. Each
+  // paired panel is one leaf, so its two faces must share a rotation.
+  const pairs: [number, number][] = [[8, 9], [5, 4], [11, 10], [2, 3]];
+  const mismatched = pairs.filter(([f, b]) => {
+    const fg = findNumber(front, f);
+    const bg = findNumber(back, b);
+    if (!fg || !bg) return true;
+    const fc = cell(fg);
+    const bc = cell(bg);
+    return fc.row !== bc.row || fc.col !== 3 - bc.col || fg.angle !== bg.angle;
+  });
+  check('paired faces share a panel and a rotation', mismatched.length === 0,
+    mismatched.map((p) => p.join('/')).join(' '));
+}
+
+section('12-page duplex mini-zine: cuts and duplex flip');
+{
+  const paper = getPaper('letter');
+  const sheet = landscape(paper);
+  const plan = planDuplex12(12, { paper, margins: NO_MARGINS, guides: true, rotateBacks: false });
+  const cuts = describeCuts(plan.sheets[0]!.guides, sheet.width / 4, sheet.height / 2);
+  check('a dash in from each end plus a stroke up the middle',
+    cuts.join(' | ') === 'H y=1 x=0..1 | H y=1 x=3..4 | V x=2 y=1..2', cuts.join(' | '));
+  check('cut marks are on the front only',
+    plan.sheets[1]!.guides.length === 0, `${plan.sheets[1]!.guides.length} on the back`);
+
+  // Long-edge flip pre-rotates the reverse, so every panel moves diagonally.
+  const rotated = planDuplex12(12, { paper, margins: NO_MARGINS, guides: false, rotateBacks: true });
+  const plain = plan.sheets[1]!.slots;
+  const flipped = rotated.sheets[1]!.slots;
+  const find = (slots: typeof plain, page: number) => slots.find((s) => s.readerPage === page);
+  const four = find(plain, 4)!;
+  const fourFlipped = find(flipped, 4)!;
+  check('rotating the back moves page 4 to the opposite corner',
+    Math.abs(fourFlipped.box.x - (sheet.width - four.box.x - four.box.w)) < 0.01 &&
+    Math.abs(fourFlipped.box.y - (sheet.height - four.box.y - four.box.h)) < 0.01,
+    `${four.box.x},${four.box.y} -> ${fourFlipped.box.x},${fourFlipped.box.y}`);
+  check('and inverts it', fourFlipped.rotate180 === !four.rotate180);
+}
+
+section('12-page duplex mini-zine: padding and multiple zines');
+{
+  const paper = getPaper('letter');
+  const short = planDuplex12(7, { paper, margins: NO_MARGINS, guides: false, rotateBacks: false });
+  check('7 pages still one sheet', short.sheets.length === 2);
+  check('5 blanks added', short.blanksAdded === 5, `got ${short.blanksAdded}`);
+
+  const long = planDuplex12(20, { paper, margins: NO_MARGINS, guides: false, rotateBacks: false });
+  check('20 pages make 2 zines', long.sheets.length === 4, `got ${long.sheets.length / 2}`);
+  check('4 blanks added', long.blanksAdded === 4, `got ${long.blanksAdded}`);
+  const secondFront = long.sheets[2]!.slots.map((s) => s.readerPage).sort((a, b) => a - b);
+  check('second zine starts at page 13', secondFront[0] === 13, `${secondFront[0]}`);
+}
+
 section('booklet: saddle-stitch page order, backs upright');
 {
   const { plan, bytes } = await imposeBooklet(8);
@@ -524,7 +632,7 @@ section('ui wiring: every element main.ts grabs exists in index.html');
 
   // Options the code branches on have to exist as real <option> values.
   for (const [select, values] of Object.entries({
-    layout: ['mini8', 'river-cut', 'i-cut', 'booklet'],
+    layout: ['mini8', 'river-cut', 'i-cut', 'duplex12', 'booklet'],
     fit: ['contain', 'cover', 'stretch'],
     flip: ['short', 'long'],
     split: ['combined', 'split'],
