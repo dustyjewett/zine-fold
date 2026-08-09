@@ -123,6 +123,11 @@ Hit **Test document**. You get a numbered PDF sized exactly to one panel of the
 current layout. Load it back in, print, fold. If the pages read 1, 2, 3, … in
 order and none are upside down, your settings are right.
 
+*Length* defaults to exactly one zine or signature. Choosing 8, 16, 24 or 32
+instead lets you check a run that spans several — the covers are marked per
+zine, so you can see where each one starts and ends, and the last zine pads
+with blanks. 24 pages in a 16-page layout is the awkward case worth trying.
+
 This is worth doing once per printer. It is much faster than reasoning about
 duplex flip conventions, and it's the ground truth if anything below disagrees
 with your paper.

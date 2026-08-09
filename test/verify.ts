@@ -437,6 +437,50 @@ section('fit modes');
   }
 }
 
+section('test documents mark covers per zine, not just at the ends');
+{
+  /** Page numbers carrying each cover marker. */
+  async function covers(pageCount: number, pagesPerZine: number) {
+    const bytes = await buildTestDocument(pageCount, 153, 198, pagesPerZine);
+    const task = getDocument({ data: bytes.slice(), verbosity: 0 });
+    const doc = await task.promise;
+    const front: number[] = [];
+    const back: number[] = [];
+    for (let i = 1; i <= doc.numPages; i++) {
+      const text = (await (await doc.getPage(i)).getTextContent()).items
+        .map((it) => ('str' in it ? it.str : ''))
+        .join('');
+      if (text.includes('FRONT COVER')) front.push(i);
+      if (text.includes('BACK COVER')) back.push(i);
+    }
+    await task.destroy();
+    return { front, back, pages: doc.numPages };
+  }
+
+  const single = await covers(16, 16);
+  check('16-page document has 16 pages', single.pages === 16, `${single.pages}`);
+  check('one front cover, on page 1', single.front.join(',') === '1', single.front.join(','));
+  check('one back cover, on page 16', single.back.join(',') === '16', single.back.join(','));
+
+  const three = await covers(32, 16);
+  check('32 pages at 16 per zine: fronts on 1 and 17',
+    three.front.join(',') === '1,17', three.front.join(','));
+  check('32 pages at 16 per zine: backs on 16 and 32',
+    three.back.join(',') === '16,32', three.back.join(','));
+
+  // A run that stops mid-zine still marks its final page, so the tail is obvious.
+  const ragged = await covers(24, 16);
+  check('24 pages at 16 per zine: fronts on 1 and 17',
+    ragged.front.join(',') === '1,17', ragged.front.join(','));
+  check('24 pages at 16 per zine: backs on 16 and 24',
+    ragged.back.join(',') === '16,24', ragged.back.join(','));
+
+  const eight = await covers(8, 8);
+  check('8-page default is unchanged',
+    eight.front.join(',') === '1' && eight.back.join(',') === '8',
+    `${eight.front.join(',')} / ${eight.back.join(',')}`);
+}
+
 section('page range parsing');
 {
   check('blank means all', parsePageRange('', 4).join(',') === '0,1,2,3');
@@ -486,6 +530,7 @@ section('ui wiring: every element main.ts grabs exists in index.html');
     split: ['combined', 'split'],
     binding: ['left', 'right'],
     units: ['mm', 'in'],
+    'testdoc-pages': ['auto', '8', '16', '24', '32'],
   })) {
     const block = html.slice(html.indexOf(`id="${select}"`));
     const body = block.slice(0, block.indexOf('</select>'));

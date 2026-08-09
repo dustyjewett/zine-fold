@@ -10,6 +10,11 @@ export async function buildTestDocument(
   pageCount: number,
   panelWidth: number,
   panelHeight: number,
+  /**
+   * Pages in one finished zine or signature. A longer document splits into
+   * several, so the cover markers repeat rather than appearing only at the ends.
+   */
+  pagesPerZine: number = pageCount,
 ): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   doc.setTitle(`Zine fold test (${pageCount} pages)`);
@@ -50,7 +55,12 @@ export async function buildTestDocument(
       color: rgb(0.55, 0.55, 0.6),
     });
 
-    const foot = i === 1 ? 'FRONT COVER' : i === pageCount ? 'BACK COVER' : '';
+    const per = Math.max(1, pagesPerZine);
+    const foot = (i - 1) % per === 0
+      ? 'FRONT COVER'
+      : i % per === 0 || i === pageCount
+        ? 'BACK COVER'
+        : '';
     if (foot) {
       page.drawText(foot, {
         x: (panelWidth - regular.widthOfTextAtSize(foot, markerSize)) / 2,

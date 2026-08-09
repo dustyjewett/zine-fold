@@ -34,6 +34,7 @@ const ui = {
   numbers: el<HTMLInputElement>('numbers'),
   download: el<HTMLButtonElement>('download'),
   testdoc: el<HTMLButtonElement>('testdoc'),
+  testdocPages: el<HTMLSelectElement>('testdoc-pages'),
   status: el<HTMLParagraphElement>('status'),
   sheetInfo: el<HTMLParagraphElement>('sheet-info'),
   previewLabel: el<HTMLSpanElement>('preview-label'),
@@ -340,17 +341,29 @@ ui.download.addEventListener('click', () => {
   files.forEach((file, i) => setTimeout(() => saveBytes(file.name, file.bytes), i * 400));
 });
 
-ui.testdoc.addEventListener('click', async () => {
+/** Pages in one finished zine or signature, for the current settings. */
+function pagesPerZine(): number {
+  if (!isBooklet()) return pagesPerSheet();
   const perSig = sheetsPerSignature();
-  const pages = isBooklet()
-    ? (perSig === 'single' ? 8 : perSig * 4)
-    : pagesPerSheet();
+  return perSig === 'single' ? 8 : perSig * 4;
+}
+
+ui.testdoc.addEventListener('click', async () => {
+  const per = pagesPerZine();
+  const choice = ui.testdocPages.value;
+  const pages = choice === 'auto' ? per : Number(choice);
 
   const { width, height } = panelSize();
   setStatus('Building test document…');
-  const bytes = await buildTestDocument(pages, width, height);
+  const bytes = await buildTestDocument(pages, width, height, per);
   saveBytes(`zine-test-${pages}pp.pdf`, bytes);
-  setStatus(`Test document saved — ${pages} numbered pages sized to one panel. Load it above, print, fold.`);
+
+  const zines = Math.ceil(pages / per);
+  const spread = zines > 1 ? ` across ${zines} zines of ${per}` : '';
+  setStatus(
+    `Test document saved — ${pages} numbered pages${spread}, sized to one panel. ` +
+    'Load it above, print, fold.',
+  );
 });
 
 syncVisibility();

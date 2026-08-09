@@ -141,6 +141,25 @@
           <label class="check"><input type="checkbox" id="numbers" /> Stamp page numbers (test folds)</label>
         </fieldset>
 
+        <fieldset>
+          <legend>Test document</legend>
+          <div class="field">
+            <label for="testdoc-pages">Length</label>
+            <select id="testdoc-pages">
+              <option value="auto">Auto — exactly one zine or signature</option>
+              <option value="8">8 pages</option>
+              <option value="16">16 pages</option>
+              <option value="24">24 pages</option>
+              <option value="32">32 pages</option>
+            </select>
+            <p class="hint">
+              Numbered dummy pages sized to one panel of the current layout. Pick a
+              length past what one zine holds to check how the run splits — the
+              covers are marked per zine, and the last one pads with blanks.
+            </p>
+          </div>
+        </fieldset>
+
         <div class="actions">
           <button type="button" id="download" disabled>Download</button>
           <button type="button" id="testdoc" class="secondary">Test document</button>
