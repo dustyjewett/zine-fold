@@ -1,0 +1,25 @@
+# Response headers for Cloudflare Workers static assets.
+# Vite copies this into dist/; Cloudflare parses it and does not serve it.
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  Permissions-Policy: geolocation=(), camera=(), microphone=(), usb=()
+  Cross-Origin-Opener-Policy: same-origin
+  # The app is wholly self-contained: no CDN, no analytics, no network calls at
+  # all. Locking connect-src down to 'self' means a future dependency cannot
+  # quietly start shipping someone's PDF off the machine.
+  # blob: is needed because the preview iframe renders a blob: URL PDF.
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' blob:; frame-src blob:; object-src blob:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+
+# Vite fingerprints these filenames, so they can never go stale.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Both spellings: a request for "/" does not match the "/index.html" pattern,
+# and would otherwise fall through to Cloudflare's default.
+/
+  Cache-Control: no-cache
+
+/index.html
+  Cache-Control: no-cache

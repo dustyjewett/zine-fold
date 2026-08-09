@@ -1,0 +1,29 @@
+{
+  "name": "zine-fold",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Impose PDFs into printable mini-zine and saddle-stitch booklet layouts",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types test/verify.ts",
+    "test:browser": "node --experimental-strip-types test/browser.ts",
+    "test:all": "npm test && npm run build && npm run test:browser",
+    "deploy": "npm run build && wrangler deploy",
+    "deploy:preview": "npm run build && wrangler versions upload",
+    "test:live": "ZINE_URL=https://zine-fold.dusty-jewett.workers.dev/ node --experimental-strip-types test/browser.ts"
+  },
+  "dependencies": {
+    "pdf-lib": "^1.17.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "pdfjs-dist": "^6.2.108",
+    "typescript": "~5.9.3",
+    "vite": "^8.2.1",
+    "wrangler": "^4.120.0"
+  }
+}

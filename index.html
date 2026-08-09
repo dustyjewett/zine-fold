@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Zine Fold — PDF imposition for mini-zines and booklets</title>
+    <meta
+      name="description"
+      content="Turn a PDF into a fold-ready mini-zine or saddle-stitch booklet. Prints with plain duplex, no 'multiple pages per sheet'. Runs entirely in your browser — nothing is uploaded."
+    />
+    <!-- Both the apex and www serve the app; point search engines at the apex. -->
+    <link rel="canonical" href="https://zine-fold.com/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://zine-fold.com/" />
+    <meta property="og:title" content="Zine Fold — fold-ready PDF imposition" />
+    <meta
+      property="og:description"
+      content="Turn a PDF into a fold-ready mini-zine or saddle-stitch booklet, printable with plain duplex."
+    />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>📖</text></svg>" />
+  </head>
+  <body>
+    <header class="topbar">
+      <h1>Zine Fold</h1>
+      <p class="tagline">Fold-ready PDF imposition. Everything runs in your browser — nothing is uploaded.</p>
+    </header>
+
+    <main class="layout">
+      <section class="controls" aria-label="Settings">
+        <div class="field">
+          <label for="file">Source PDF</label>
+          <input type="file" id="file" accept="application/pdf,.pdf" />
+          <p class="hint" id="file-info">No file loaded.</p>
+        </div>
+
+        <fieldset>
+          <legend>Layout</legend>
+          <div class="field">
+            <select id="layout">
+              <option value="mini8">8-page mini-zine — 1 sheet, single-sided</option>
+              <option value="booklet">Half-page booklet — saddle stitch, duplex</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="paper">Paper (used landscape)</label>
+            <select id="paper"></select>
+          </div>
+
+          <div class="field" data-when="booklet">
+            <label for="signature">Sheets per signature</label>
+            <select id="signature">
+              <option value="single">Single signature (all pages nested)</option>
+              <option value="1">1 sheet — 4 pages</option>
+              <option value="2">2 sheets — 8 pages</option>
+              <option value="4" selected>4 sheets — 16 pages</option>
+              <option value="5">5 sheets — 20 pages</option>
+              <option value="6">6 sheets — 24 pages</option>
+              <option value="8">8 sheets — 32 pages</option>
+            </select>
+            <p class="hint">
+              Thick single signatures bow out at the fold. 4–6 sheets each, stacked
+              into several signatures, staples and trims much more cleanly.
+            </p>
+          </div>
+
+          <div class="field" data-when="booklet">
+            <label for="binding">Binding edge</label>
+            <select id="binding">
+              <option value="left">Left (English)</option>
+              <option value="right">Right (manga / RTL)</option>
+            </select>
+          </div>
+        </fieldset>
+
+        <fieldset data-when="booklet">
+          <legend>Duplex</legend>
+          <div class="field">
+            <label for="flip">Printer flip setting</label>
+            <select id="flip">
+              <option value="short">Flip on short edge — backs print upright</option>
+              <option value="long">Flip on long edge — rotate backs 180°</option>
+            </select>
+            <p class="hint">
+              Landscape sheets normally want <strong>short-edge</strong> flip. If a test fold comes
+              out with every other side upside down, switch this — don't change the printer.
+            </p>
+          </div>
+          <div class="field">
+            <label for="split">Output</label>
+            <select id="split">
+              <option value="combined">One file, fronts and backs interleaved</option>
+              <option value="split">Two files, for manual duplex</option>
+            </select>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Pages &amp; fit</legend>
+          <div class="field">
+            <label for="range">Page range</label>
+            <input type="text" id="range" placeholder="all pages — e.g. 1-12, 15, 20-18" />
+          </div>
+          <div class="field">
+            <label for="fit">Scaling</label>
+            <select id="fit">
+              <option value="contain">Fit whole page (letterbox)</option>
+              <option value="cover">Fill panel (crop overflow)</option>
+              <option value="stretch">Stretch to panel (distorts)</option>
+            </select>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Margins</legend>
+          <div class="row">
+            <div class="field">
+              <label for="panel-margin">Around each panel</label>
+              <input type="number" id="panel-margin" value="3" min="0" step="0.5" />
+            </div>
+            <div class="field">
+              <label for="edge-margin">Extra at paper edge</label>
+              <input type="number" id="edge-margin" value="3" min="0" step="0.5" />
+            </div>
+            <div class="field narrow">
+              <label for="units">Units</label>
+              <select id="units">
+                <option value="mm">mm</option>
+                <option value="in">in</option>
+              </select>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Marks</legend>
+          <label class="check"><input type="checkbox" id="guides" checked /> Fold ticks and cut line</label>
+          <label class="check"><input type="checkbox" id="numbers" /> Stamp page numbers (test folds)</label>
+        </fieldset>
+
+        <div class="actions">
+          <button type="button" id="download" disabled>Download</button>
+          <button type="button" id="testdoc" class="secondary">Test document</button>
+        </div>
+
+        <p class="status" id="status" role="status"></p>
+      </section>
+
+      <section class="preview" aria-label="Preview">
+        <div class="preview-head">
+          <span id="preview-label">Preview</span>
+        </div>
+        <div class="preview-body">
+          <iframe id="viewer" title="Imposed PDF preview"></iframe>
+          <div class="placeholder" id="placeholder">
+            <p>Load a PDF to see the imposed sheets.</p>
+            <p class="hint">
+              No PDF handy? Hit <strong>Test document</strong> for a numbered dummy sized to
+              the current layout, then load it back here and fold the result.
+            </p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

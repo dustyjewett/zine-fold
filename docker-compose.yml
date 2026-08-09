@@ -1,0 +1,8 @@
+services:
+  zine:
+    build: .
+    image: zine:latest
+    container_name: zine
+    restart: unless-stopped
+    ports:
+      - "8088:80"
