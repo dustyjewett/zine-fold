@@ -16,6 +16,8 @@ Two layouts:
 It runs entirely in the browser. Nothing is uploaded; the PDF never leaves the
 machine, which also means there's no file size limit and it works offline.
 
+That last part is enforced, not just intended — see [Privacy](#privacy).
+
 ---
 
 ## Running it
@@ -159,6 +161,32 @@ automatically shrinks to fit rather than padding out with blanks, so 24 pages at
 
 Sheets come out of the printer in order, outermost first. Keep each signature's
 stack together, fold, staple twice through the spine.
+
+---
+
+## Privacy
+
+The app reads your file with `FileReader` and builds the output PDF in memory.
+After the page loads it makes **no network requests at all** — no upload, no
+CDN, no analytics, no telemetry.
+
+That is backed by the Content-Security-Policy in `public/_headers`, which sets
+`connect-src 'none'`. `fetch`, `XMLHttpRequest`, `WebSocket` and `sendBeacon`
+are all refused by the browser, *including back to this origin*. A dependency
+that turned malicious could not quietly POST your document anywhere, because
+there is nowhere it is permitted to POST to. `script-src 'self'` likewise means
+no third-party code can run, which is what blocks the analytics beacon
+Cloudflare injects at the edge.
+
+Measured, not assumed — `npm run test:browser` asserts the refusals as
+behaviour, because the APIs lie about it: `sendBeacon()` returns `true` and
+`form.submit()` throws nothing even when CSP has blocked them. The
+`securitypolicyviolation` event is the only honest signal.
+
+**What this does not cover:** CSP has no directive restricting top-level
+navigation, so `location = 'https://elsewhere/?data=…'` is still reachable by
+script. This closes every practical exfiltration channel, but it is a narrowed
+surface rather than an absolute guarantee.
 
 ---
 
