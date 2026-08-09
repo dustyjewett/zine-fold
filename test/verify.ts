@@ -142,7 +142,7 @@ section('sanity: pdf.js reads the test document in PDF user space');
   );
 }
 
-section('mini-zine: 8 panels on one single-sided sheet');
+section('8-page mini zine: 8 panels on one single-sided sheet');
 {
   const { plan, bytes } = await imposeMini8(8);
   check('one output sheet', plan.sheets.length === 1, `got ${plan.sheets.length}`);
@@ -178,7 +178,7 @@ section('mini-zine: 8 panels on one single-sided sheet');
   }
 }
 
-section('mini-zine: short document pads to 8, long document splits');
+section('8-page mini zine: short document pads to 8, long document splits');
 {
   const short = await imposeMini8(5);
   check('5 pages still make one sheet', short.plan.sheets.length === 1);
@@ -188,7 +188,7 @@ section('mini-zine: short document pads to 8, long document splits');
   check('page 5 still drawn', !!findNumber(glyphs, 5));
 
   const long = planMini8(20, { paper: getPaper('letter'), margins: NO_MARGINS, guides: false });
-  check('20 pages make 3 mini-zines', long.sheets.length === 3, `got ${long.sheets.length}`);
+  check('20 pages make 3 zines', long.sheets.length === 3, `got ${long.sheets.length}`);
   check('4 blanks added', long.blanksAdded === 4, `got ${long.blanksAdded}`);
 }
 
@@ -228,7 +228,7 @@ for (const variant of [
     cuts: ['H y=1 x=1..3', 'H y=2 x=0..1', 'H y=2 x=3..4', 'H y=3 x=1..3', 'V x=2 y=1..3'],
   },
 ]) {
-  section(`16-page mini-zine: ${variant.name} panel map`);
+  section(`micro zine: ${variant.name} panel map`);
   {
     const paper = getPaper('letter');
     const sheet = portrait(paper);
@@ -268,7 +268,7 @@ for (const variant of [
     check('every page neighbours the next', breaks.length === 0, breaks.join(' '));
   }
 
-  section(`16-page mini-zine: ${variant.name} slits`);
+  section(`micro zine: ${variant.name} slits`);
   {
     const paper = getPaper('letter');
     const sheet = portrait(paper);
@@ -280,7 +280,7 @@ for (const variant of [
   }
 }
 
-section('16-page mini-zine: padding and multiple zines');
+section('micro zine: padding and multiple zines');
 {
   const paper = getPaper('letter');
   const short = planRiverCut(10, { paper, margins: NO_MARGINS, guides: false });
@@ -295,7 +295,7 @@ section('16-page mini-zine: padding and multiple zines');
     `${second[0]}..${second[15]}`);
 }
 
-section('12-page duplex mini-zine: both sides');
+section('12-page mini zine: both sides');
 {
   const paper = getPaper('letter');
   const sheet = landscape(paper);
@@ -363,7 +363,7 @@ section('12-page duplex mini-zine: both sides');
     mismatched.map((p) => p.join('/')).join(' '));
 }
 
-section('12-page duplex mini-zine: cuts and duplex flip');
+section('12-page mini zine: cuts and duplex flip');
 {
   const paper = getPaper('letter');
   const sheet = landscape(paper);
@@ -388,7 +388,7 @@ section('12-page duplex mini-zine: cuts and duplex flip');
   check('and inverts it', fourFlipped.rotate180 === !four.rotate180);
 }
 
-section('12-page duplex mini-zine: padding and multiple zines');
+section('12-page mini zine: padding and multiple zines');
 {
   const paper = getPaper('letter');
   const short = planDuplex12(7, { paper, margins: NO_MARGINS, guides: false, rotateBacks: false });

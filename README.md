@@ -6,15 +6,29 @@ Turns a PDF into a **fold-ready** PDF: one output page per side of paper, alread
 imposed. You print it 1-per-sheet with plain duplex — no "multiple pages per
 sheet", no booklet mode, nothing for the print driver to get wrong.
 
-Five layouts:
+Five layouts, grouped by finished page size.
+
+**Mini zines** — eight panels to a sheet side, so pages are an eighth of the
+sheet (2.75 × 4.25 in from Letter):
 
 | Layout | Sheets | Sides | Result |
 | --- | --- | --- | --- |
-| **8-page mini-zine** | 1 per zine | single-sided | Classic fold-and-slit pocket zine |
-| **16-page — River Cut** | 1 per zine | single-sided | 4×4 grid, 3 slits, snaking route |
-| **16-page — -Ɪ- cut** | 1 per zine | single-sided | 4×4 grid, 5 slits, spiral route |
-| **12-page duplex** | 1 per zine | duplex | 4×2 per side, 3 cuts, 4 hidden faces |
-| **Half-page booklet** | 1..N | duplex | Saddle-stitched booklet, 1..N signatures |
+| **8-page** | 1 per zine | single-sided | Classic fold-and-slit pocket zine |
+| **12-page** | 1 per zine | duplex | 4×2 per side, 3 cuts, 4 hidden faces |
+
+**Micro zines** — sixteen panels to a sheet side, so pages are a sixteenth
+(2.13 × 2.75 in from Letter), on portrait stock:
+
+| Layout | Sheets | Sides | Result |
+| --- | --- | --- | --- |
+| **16-page, River Cut** | 1 per zine | single-sided | 4×4 grid, 3 slits, snaking route |
+| **16-page, -Ɪ- cut** | 1 per zine | single-sided | 4×4 grid, 5 slits, spiral route |
+
+**Half-sheet** — two panels to a sheet side, for something closer to a book:
+
+| Layout | Sheets | Sides | Result |
+| --- | --- | --- | --- |
+| **Booklet** | 1..N | duplex | Saddle-stitched, 1..N signatures |
 
 It runs entirely in the browser. Nothing is uploaded; the PDF never leaves the
 machine, which also means there's no file size limit and it works offline.
@@ -96,9 +110,10 @@ that layout needs — landscape for the 8-page zine and the booklet, portrait fo
 the two 16-page folds. Let the driver place them; don't override the orientation
 yourself. The picker under *Paper* shows the sheet and finished page size.
 
-### Mini-zine
+### Mini and micro zines
 
-Single-sided. Nothing else to configure.
+The 8-page and both 16-page folds are single-sided — nothing else to configure.
+The 12-page mini zine is duplex; treat it like the booklet below.
 
 ### Booklet
 
@@ -135,34 +150,39 @@ with your paper.
 
 ---
 
-## Folding the mini-zine
+## Folding the 8-page mini zine
 
 The sheet is laid out as four columns by two rows, with the top row printed
 upside down:
 
 ```
-+-----+-----+-----+-----+
-|  5  |  4  |  3  |  2  |   <- this row prints upside down
-+-----+-----+-----+-----+
-|  6  |  7  |  8  |  1  |   <- page 1 is the front cover
-+-----+-----+-----+-----+
+         col 0     col 1     col 2     col 3
+      +---------+---------+---------+---------+
+row 0 |    5    |    4    |    3    |    2    |   prints upside down
+      +---------+~~~~~~~~~~~~~~~~~~~+---------+   cut these two panels only
+row 1 |    6    |    7    |    8    |    1    |
+      +---------+---------+---------+---------+
+
+      ---  fold        ~~~  cut
 ```
+
+Page 1 is the front cover, bottom right.
 
 1. Crease all eight panels: fold in half left-to-right, again left-to-right,
    then once top-to-bottom. Unfold.
-2. Fold in half top-to-bottom and **cut the dashed line** — the middle half of
+2. Fold in half top-to-bottom and **cut the marked line** — the middle half of
    the folded edge. Unfold.
 3. Fold top-to-bottom again, with the `6 7 8 1` row facing out.
 4. Push the left and right ends toward each other. The slit opens into a plus
    shape; collapse it so page 1 lands on the front.
 
-A document longer than 8 pages becomes several independent mini-zines of 8.
+A document longer than 8 pages becomes several independent 8-page zines.
 
-## The two 16-page folds
+## The two micro zine folds
 
 Both put sixteen panels on one side of a **portrait** sheet — 2.13 × 2.75 in
-pages from Letter — and both are scissors-only: no duplex, no staples, no
-trimming. They differ in how the reading order is routed across the grid, and
+pages from Letter, a quarter the area of a mini zine page — and both are
+scissors-only: no duplex, no staples, no trimming. They differ in how the reading order is routed across the grid, and
 therefore in where the paper has to be slit.
 
 Consecutive pages must stay joined, so every boundary between neighbouring
@@ -174,14 +194,18 @@ centre slit, which is how it's checked.
 ### River Cut
 
 ```
-        col 0   col 1   col 2   col 3
-row 0 |    4       3       2       1     <- prints upside down
-      |------- cut -----------------|    slit from the RIGHT
-row 1 |    5       6       7       8
-      |--- cut ---------------|          slit from the LEFT
-row 2 |   12      11      10       9     <- prints upside down
-      |------- cut -----------------|    slit from the RIGHT
-row 3 |   13      14      15      16
+         col 0     col 1     col 2     col 3
+      +---------+---------+---------+---------+
+row 0 |    4    |    3    |    2    |    1    |   prints upside down
+      +---------+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~+   cut in from the RIGHT — col 0 is the hinge
+row 1 |    5    |    6    |    7    |    8    |
+      +~~~~~~~~~~~~~~~~~~~~~~~~~~~~~+---------+   cut in from the LEFT  — col 3 is the hinge
+row 2 |    12   |    11   |    10   |    9    |   prints upside down
+      +---------+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~+   cut in from the RIGHT — col 0 is the hinge
+row 3 |    13   |    14   |    15   |    16   |
+      +---------+---------+---------+---------+
+
+      ---  fold        ~~~  cut
 ```
 
 The route simply snakes along each row and turns at alternating ends. Each slit
@@ -197,16 +221,21 @@ enter from alternating edges — the meander the name refers to.
 ### -Ɪ- cut
 
 ```
-        col 0   col 1   col 2   col 3
-row 0 |    9       8       7       6     <- prints upside down
-      |       |------ cut -------|       crossbar
-row 1 |   10      11       4       5
-      |-cut-|      |            |-cut-|  dashes at both edges,
-      |            | cut        |        stroke down the middle
-row 2 |   13      12       3       2     <- prints upside down
-      |       |------ cut -------|       crossbar
-row 3 |   14      15      16       1     <- page 1 is the cover
+         col 0     col 1     col 2     col 3
+      +---------+---------+---------+---------+
+row 0 |    9    |    8    |    7    |    6    |   prints upside down
+      +---------+~~~~~~~~~~~~~~~~~~~+---------+   top crossbar of the Ɪ
+row 1 |    10   |    11   ~    4    |    5    |
+      +~~~~~~~~~+---------~---------+~~~~~~~~~+   a dash in from each edge
+row 2 |    13   |    12   ~    3    |    2    |   prints upside down
+      +---------+~~~~~~~~~~~~~~~~~~~+---------+   bottom crossbar of the Ɪ
+row 3 |    14   |    15   |    16   |    1    |
+      +---------+---------+---------+---------+
+
+      ---  fold        ~~~  cut
 ```
+
+Page 1 is the front cover, bottom right.
 
 The route spirals instead: out from the cover at the bottom right, up around
 the right half, across the top, then back down the left. Pages 16 and 1 finish
@@ -222,28 +251,32 @@ front cover is page 1 and the back cover is page 16.
 
 A document longer than 16 pages becomes several independent zines, either way.
 
-## The 12-page duplex fold
+## The 12-page mini zine
 
-The only mini-zine here that uses both sides of the paper. Eight panels per side
+The only mini zine here that uses both sides of the paper. Eight panels per side
 on a landscape sheet — same panel size as the 8-page zine, 2.75 × 4.25 in on
 Letter — folded and cut into twelve pages.
 
 ```
-FRONT                          BACK  (sheet flipped left-to-right)
-+----+----+----+----+          +----+----+----+----+
-|  8 |  7 |  6 |  5 |          |  4 |    |    |  9 |   top row prints
-+----+----+----+----+          +----+----+----+----+   upside down
-| 11 | 12 |  1 |  2 |          |  3 |    |    | 10 |
-+----+----+----+----+          +----+----+----+----+
+FRONT
 
-cuts:  a short dash in from each end of the centre line,
-       and a stroke rising from its middle to the top edge
+         col 0     col 1     col 2     col 3
+      +---------+---------+---------+---------+
+row 0 |    8    |    7    ~    6    |    5    |   prints upside down
+      +~~~~~~~~~+---------+---------+~~~~~~~~~+   a dash in from each edge; the stroke rises through row 0
+row 1 |    11   |    12   |    1    |    2    |
+      +---------+---------+---------+---------+
 
-     +----+----+----+----+
-     |    |    |    |    |
-     +====+---- | ---+====+     <- dashes at both ends, stroke going up
-     |    |    |    |    |
-     +----+----+----+----+
+      ---  fold        ~~~  cut
+
+BACK  (the sheet flipped left-to-right)
+
+         col 0     col 1     col 2     col 3
+      +---------+---------+---------+---------+
+row 0 |    4    |         |         |    9    |   prints upside down
+      +---------+---------+---------+---------+
+row 1 |    3    |         |         |    10   |
+      +---------+---------+---------+---------+
 ```
 
 Eight panels carry sixteen faces but only twelve pages. Flipping the sheet
@@ -364,20 +397,27 @@ of the page to confirm the real UI produces the same bytes. It serves the actual
 
 ```
 src/imposition/
-  types.ts     Box / Slot / SheetPlan — a layout is just data
-  place.ts     the actual drawing: rotation anchors, fit modes, clipping
-  paper.ts     paper sizes
-  mini8.ts     8-up mini-zine plan
-  booklet.ts   saddle-stitch plan, signature packing
-src/render.ts  walks a plan and emits the PDF
-src/main.ts    UI wiring
+  types.ts      Box / Slot / SheetPlan — a layout is just data
+  place.ts      the actual drawing: rotation anchors, fit modes, clipping
+  paper.ts      paper sizes and orientation
+  strip.ts      shared single-sided machinery; derives slits from a panel map
+  mini8.ts      8-page mini zine    — panel map only
+  river-cut.ts  16-page micro zine  — panel map only
+  i-cut.ts      16-page micro zine  — panel map only
+  duplex12.ts   12-page mini zine   — two-sided, slits recorded not derived
+  booklet.ts    saddle-stitch plan, signature packing
+src/render.ts   walks a plan and emits the PDF
+src/main.ts     UI wiring
 ```
 
 A layout is a pure function from `(pageCount, options)` to an `ImpositionPlan` —
 a list of sheets, each holding slots (which source page, which rectangle, rotated
-or not) plus fold/cut marks. `render.ts` doesn't know what a zine is. Adding a
-quarter-page or 16-page layout means writing one more planner; nothing else
-changes.
+or not) plus fold and cut marks. `render.ts` doesn't know what a zine is.
+
+The three single-sided zines are panel maps and nothing else; `strip.ts` works
+out where the paper has to be slit. Another one of those is a dozen lines. A new
+two-sided fold needs its own planner, because the slits can't be derived — see
+the note under the 12-page zine.
 
 ### Not supported yet
 

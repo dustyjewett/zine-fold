@@ -95,6 +95,15 @@ function isDuplex(): boolean {
   return isBooklet() || layout() === 'duplex12';
 }
 
+/**
+ * Which family a layout belongs to, by finished page size: mini zines put
+ * eight panels on a sheet side, micro zines sixteen.
+ */
+function family(): 'mini zine' | 'micro zine' | 'booklet' {
+  if (isBooklet()) return 'booklet';
+  return is16Page() ? 'micro zine' : 'mini zine';
+}
+
 /** Pages one sheet holds; for the booklet it depends on the signature size. */
 function pagesPerSheet(): number {
   if (is16Page()) return 16;
@@ -232,7 +241,7 @@ async function regenerate(): Promise<void> {
       {
         fit: ui.fit.value as FitMode,
         numberOverlay: ui.numbers.checked,
-        title: `${state.baseName} — ${isBooklet() ? 'booklet' : 'mini-zine'}`,
+        title: `${state.baseName} — ${family()}`,
       },
       split,
       state.baseName,
@@ -275,7 +284,7 @@ function describePlan(plan: ImpositionPlan, pageCount: number, result: RenderRes
     parts.push(`${plan.sheets.length} sides, duplex`);
   } else {
     if (physicalSheets > 1) {
-      parts.push(`${physicalSheets} separate mini-zines of ${pagesPerSheet()} pages`);
+      parts.push(`${physicalSheets} separate ${family()}s of ${pagesPerSheet()} pages`);
     }
     parts.push(isDuplex() ? `${plan.sheets.length} sides, duplex` : 'single-sided');
     const slits = plan.sheets[0]?.guides.filter((g) => g.kind === 'cut').length ?? 0;

@@ -3,10 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Zine Fold — PDF imposition for mini-zines and booklets</title>
+    <title>Zine Fold — PDF imposition for mini zines, micro zines and booklets</title>
     <meta
       name="description"
-      content="Turn a PDF into a fold-ready mini-zine or saddle-stitch booklet. Prints with plain duplex, no 'multiple pages per sheet'. Runs entirely in your browser — nothing is uploaded."
+      content="Turn a PDF into a fold-ready mini zine, micro zine or saddle-stitch booklet. Prints with plain duplex, no 'multiple pages per sheet'. Runs entirely in your browser — nothing is uploaded."
     />
     <!-- Both the apex and www serve the app; point search engines at the apex. -->
     <link rel="canonical" href="https://zine-fold.com/" />
@@ -15,7 +15,7 @@
     <meta property="og:title" content="Zine Fold — fold-ready PDF imposition" />
     <meta
       property="og:description"
-      content="Turn a PDF into a fold-ready mini-zine or saddle-stitch booklet, printable with plain duplex."
+      content="Turn a PDF into a fold-ready mini zine, micro zine or saddle-stitch booklet, printable with plain duplex."
     />
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>📖</text></svg>" />
   </head>
@@ -37,11 +37,17 @@
           <legend>Layout</legend>
           <div class="field">
             <select id="layout">
-              <option value="mini8">8-page mini-zine — 1 sheet, single-sided</option>
-              <option value="river-cut">16-page mini-zine — River Cut (1 sheet, 3 slits)</option>
-              <option value="i-cut">16-page mini-zine — -Ɪ- cut (1 sheet, 5 slits)</option>
-              <option value="duplex12">12-page mini-zine — duplex, 1 sheet, 3 cuts</option>
-              <option value="booklet">Half-page booklet — saddle stitch, duplex</option>
+              <optgroup label="Mini zines — eighth-sheet pages">
+                <option value="mini8">8-page mini zine — single-sided</option>
+                <option value="duplex12">12-page mini zine — duplex, 3 cuts</option>
+              </optgroup>
+              <optgroup label="Micro zines — sixteenth-sheet pages">
+                <option value="river-cut">16-page micro zine — River Cut, 3 slits</option>
+                <option value="i-cut">16-page micro zine — -Ɪ- cut, 5 slits</option>
+              </optgroup>
+              <optgroup label="Half-sheet">
+                <option value="booklet">Half-sheet booklet — saddle stitch, 1..N signatures</option>
+              </optgroup>
             </select>
           </div>
 
