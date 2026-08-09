@@ -11,6 +11,7 @@ import { readFile } from 'node:fs/promises';
 import { PDFDocument, degrees } from 'pdf-lib';
 import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { planBooklet } from '../src/imposition/booklet.ts';
+import { readmeDiagrams } from './diagram.ts';
 import { planDuplex12 } from '../src/imposition/duplex12.ts';
 import { planICut } from '../src/imposition/i-cut.ts';
 import { planMini8 } from '../src/imposition/mini8.ts';
@@ -587,6 +588,22 @@ section('test documents mark covers per zine, not just at the ends');
   check('8-page default is unchanged',
     eight.front.join(',') === '1' && eight.back.join(',') === '8',
     `${eight.front.join(',')} / ${eight.back.join(',')}`);
+}
+
+section('README fold diagrams match the layouts they document');
+{
+  // The diagrams are rendered from each planner's own output, so this catches
+  // a layout change that leaves the documentation describing the old fold.
+  const readme = await readFile(new URL('../README.md', import.meta.url), 'utf8');
+  for (const [name, diagram] of Object.entries(readmeDiagrams())) {
+    const present = readme.includes(diagram);
+    check(`${name} diagram is current`, present,
+      present ? '' : `README is stale — run \`npm run diagrams\`:\n${diagram}`);
+  }
+
+  check('diagrams use a single-cell glyph for vertical slits',
+    [...Object.values(readmeDiagrams()).join('')].every((c) => c !== '︴'),
+    'a wide character would break the monospace grid');
 }
 
 section('page range parsing');

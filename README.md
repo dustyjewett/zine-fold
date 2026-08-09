@@ -163,7 +163,7 @@ row 0 |    5    |    4    |    3    |    2    |   prints upside down
 row 1 |    6    |    7    |    8    |    1    |
       +---------+---------+---------+---------+
 
-      ---  fold        ~~~  cut
+      ---  fold      ~~~  cut
 ```
 
 Page 1 is the front cover, bottom right.
@@ -200,12 +200,12 @@ row 0 |    4    |    3    |    2    |    1    |   prints upside down
       +---------+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~+   cut in from the RIGHT — col 0 is the hinge
 row 1 |    5    |    6    |    7    |    8    |
       +~~~~~~~~~~~~~~~~~~~~~~~~~~~~~+---------+   cut in from the LEFT  — col 3 is the hinge
-row 2 |    12   |    11   |    10   |    9    |   prints upside down
+row 2 |   12    |   11    |   10    |    9    |   prints upside down
       +---------+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~+   cut in from the RIGHT — col 0 is the hinge
-row 3 |    13   |    14   |    15   |    16   |
+row 3 |   13    |   14    |   15    |   16    |
       +---------+---------+---------+---------+
 
-      ---  fold        ~~~  cut
+      ---  fold      ~~~  cut
 ```
 
 The route simply snakes along each row and turns at alternating ends. Each slit
@@ -225,14 +225,14 @@ enter from alternating edges — the meander the name refers to.
       +---------+---------+---------+---------+
 row 0 |    9    |    8    |    7    |    6    |   prints upside down
       +---------+~~~~~~~~~~~~~~~~~~~+---------+   top crossbar of the Ɪ
-row 1 |    10   |    11   ~    4    |    5    |
-      +~~~~~~~~~+---------~---------+~~~~~~~~~+   a dash in from each edge
-row 2 |    13   |    12   ~    3    |    2    |   prints upside down
+row 1 |   10    |   11    ⌇    4    |    5    |
+      +~~~~~~~~~+---------⌇---------+~~~~~~~~~+   a dash in from each edge
+row 2 |   13    |   12    ⌇    3    |    2    |   prints upside down
       +---------+~~~~~~~~~~~~~~~~~~~+---------+   bottom crossbar of the Ɪ
-row 3 |    14   |    15   |    16   |    1    |
+row 3 |   14    |   15    |   16    |    1    |
       +---------+---------+---------+---------+
 
-      ---  fold        ~~~  cut
+      ---  fold      ~~~  cut across      ⌇  cut down
 ```
 
 Page 1 is the front cover, bottom right.
@@ -262,12 +262,12 @@ FRONT
 
          col 0     col 1     col 2     col 3
       +---------+---------+---------+---------+
-row 0 |    8    |    7    ~    6    |    5    |   prints upside down
+row 0 |    8    |    7    ⌇    6    |    5    |   prints upside down
       +~~~~~~~~~+---------+---------+~~~~~~~~~+   a dash in from each edge; the stroke rises through row 0
-row 1 |    11   |    12   |    1    |    2    |
+row 1 |   11    |   12    |    1    |    2    |
       +---------+---------+---------+---------+
 
-      ---  fold        ~~~  cut
+      ---  fold      ~~~  cut across      ⌇  cut down
 
 BACK  (the sheet flipped left-to-right)
 
@@ -275,8 +275,10 @@ BACK  (the sheet flipped left-to-right)
       +---------+---------+---------+---------+
 row 0 |    4    |         |         |    9    |   prints upside down
       +---------+---------+---------+---------+
-row 1 |    3    |         |         |    10   |
+row 1 |    3    |         |         |   10    |
       +---------+---------+---------+---------+
+
+      ---  fold      ~~~  cut
 ```
 
 Eight panels carry sixteen faces but only twelve pages. Flipping the sheet
@@ -363,6 +365,7 @@ npm run build         # typecheck + production bundle into dist/
 npm run test:browser  # drives the built app in headless Chrome (needs dist/)
 npm run test:all      # all of the above, in order
 npm run test:live     # same browser suite, against the deployed site
+npm run diagrams      # re-render the README's fold diagrams
 ```
 
 `test:live` is `test:browser` with `ZINE_URL` set, so a release can be smoke
@@ -392,6 +395,14 @@ reader rather than against itself. `test:browser` speaks CDP to headless Chrome
 directly (no Playwright/Puppeteer dependency) and pulls the preview blob back out
 of the page to confirm the real UI produces the same bytes. It serves the actual
 `public/_headers`, so the suite fails if the production CSP ever breaks the app.
+
+The fold diagrams in this file are rendered from each planner's own output —
+page numbers, orientations and slit geometry are all read back off the
+`ImpositionPlan`. `npm test` fails if the README no longer matches, so a layout
+change cannot leave the documentation describing the old fold. Run
+`npm run diagrams` and paste. Vertical slits use `⌇` (U+2307), which is a single
+cell wide; a wide character such as `︴` would break the grid, and there's a
+check for that too.
 
 ### Layout of the code
 

@@ -14,7 +14,8 @@
     "test:all": "npm test && npm run build && npm run test:browser",
     "deploy": "npm run build && wrangler deploy",
     "deploy:preview": "npm run build && wrangler versions upload",
-    "test:live": "ZINE_URL=https://zine-fold.com/ node --experimental-strip-types test/browser.ts"
+    "test:live": "ZINE_URL=https://zine-fold.com/ node --experimental-strip-types test/browser.ts",
+    "diagrams": "node --experimental-strip-types test/diagram.ts"
   },
   "dependencies": {
     "pdf-lib": "^1.17.1"
