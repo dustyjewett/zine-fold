@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# A newer push makes an in-flight run irrelevant.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Imposition tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      # Preinstalled on GitHub's Ubuntu images. Checked explicitly so a runner
+      # image change surfaces as "no Chrome" rather than a confusing CDP error.
+      - name: Confirm Chrome is available
+        run: google-chrome --version
+
+      - name: Browser tests
+        run: npm run test:browser
+
+      - name: Upload build output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7
+
+  # Checks that the deployed site still works. Needs no credentials — it only
+  # loads the public URL — so it is safe to run from a fork or on a schedule.
+  # Manual only by default; deploys are run from a workstation.
+  smoke:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Smoke test production
+        run: npm run test:live

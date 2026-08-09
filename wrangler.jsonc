@@ -18,15 +18,15 @@
     "not_found_handling": "single-page-application"
   },
 
-  // Uncomment once zine-fold.com is registered and its zone is active in the
-  // account above — a Custom Domain route fails to deploy until the zone
-  // exists. The Worker is the origin, so Cloudflare then creates and manages
-  // the DNS records and certificates itself. www is listed so typing it doesn't
-  // dead-end; see the README for making the apex canonical.
-  // "routes": [
-  //   { "pattern": "zine-fold.com", "custom_domain": true },
-  //   { "pattern": "www.zine-fold.com", "custom_domain": true }
-  // ],
+  // The Worker is the origin, so Cloudflare owns the DNS records and certs for
+  // these. Declaring them here rather than only in the dashboard keeps the
+  // routing in version control — a fresh `wrangler deploy` reproduces it.
+  // www is listed so typing it doesn't dead-end; index.html carries a canonical
+  // link to the apex. See the README for making www actually redirect.
+  "routes": [
+    { "pattern": "zine-fold.com", "custom_domain": true },
+    { "pattern": "www.zine-fold.com", "custom_domain": true }
+  ],
 
   "observability": {
     "enabled": true

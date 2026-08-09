@@ -1,7 +1,6 @@
 # zine-fold
 
-Live at **[zine-fold.dusty-jewett.workers.dev](https://zine-fold.dusty-jewett.workers.dev)**
-— moving to **zine-fold.com** once the registration completes.
+**[zine-fold.com](https://zine-fold.com)**
 
 Turns a PDF into a **fold-ready** PDF: one output page per side of paper, already
 imposed. You print it 1-per-sheet with plain duplex — no "multiple pages per
@@ -42,22 +41,30 @@ npm run deploy:preview # publish a preview URL without touching production
 `wrangler.jsonc` points at `dist/`. Response headers live in `public/_headers`,
 which Vite copies into the build and Cloudflare parses at upload time.
 
-### The domain
+Three hostnames serve the app:
 
-`zine-fold.com` and `www.zine-fold.com` are declared as Custom Domains in
-`wrangler.jsonc`. The Worker *is* the origin, so Cloudflare creates and manages
-the DNS records and certificates on deploy — there is nothing to set up by hand.
+| Hostname | Source |
+| --- | --- |
+| `zine-fold.com` | Custom Domain, canonical |
+| `www.zine-fold.com` | Custom Domain |
+| `zine-fold.dusty-jewett.workers.dev` | `workers_dev: true` |
 
-**One prerequisite:** the `zine-fold.com` zone has to already exist in the same
-Cloudflare account. If you bought it through Cloudflare Registrar it already
-does. If you bought it elsewhere, add the site in the dashboard and repoint the
-nameservers first, otherwise the first `npm run deploy` fails on the route.
+The first two are declared as Custom Domains in `wrangler.jsonc` rather than only
+in the dashboard, so routing lives in version control and a fresh `wrangler
+deploy` reproduces it. The Worker *is* the origin, so Cloudflare owns the DNS
+records and certificates — nothing to set up by hand.
 
-Both hostnames serve the app. `index.html` carries a canonical link to the apex,
-which is enough to keep search engines from treating www as a duplicate. If you
-want www to actually redirect, add a Redirect Rule in the dashboard
-(**Rules → Redirect Rules**, `www.zine-fold.com/*` → `https://zine-fold.com/$1`,
-301) — that's zone config, not something wrangler owns.
+The zone has to exist in the same Cloudflare account before a Custom Domain
+route will deploy; a route pointing at an unknown zone fails the deploy. Newly
+created hostnames also take a few minutes to resolve and get a certificate, so a
+handshake failure right after a deploy is usually just provisioning.
+
+`index.html` carries a canonical link to the apex, which keeps search engines
+from treating www as a duplicate. If you want www to actually *redirect*, add a
+Redirect Rule in the dashboard (**Rules → Redirect Rules**,
+`www.zine-fold.com/*` → `https://zine-fold.com/$1`, 301) — that is zone config,
+not something wrangler owns. Setting `workers_dev: false` drops the
+`workers.dev` alias if you'd rather have fewer public URLs.
 
 ### Self-hosting via Docker (alternative)
 
@@ -189,8 +196,21 @@ npm run test:live     # same browser suite, against the deployed site
 tested through the real CDN and its real response headers. Point it anywhere:
 
 ```sh
-ZINE_URL=https://zine-fold.com/ npm run test:browser
+ZINE_URL=https://zine-fold.dusty-jewett.workers.dev/ npm run test:browser
 ```
+
+### CI
+
+`.github/workflows/ci.yml` runs typecheck, imposition tests, build and browser
+tests on every push and pull request. Chrome is preinstalled on GitHub's Ubuntu
+runners, so the browser suite needs no extra setup, and nothing in CI needs
+credentials.
+
+Deploys are run from a workstation, not CI, so no Cloudflare token is stored in
+the repo. The `smoke` job runs `test:live` against production and is manual
+(**Actions → CI → Run workflow**) — it only loads a public URL, so it needs no
+secrets either. To deploy from CI instead, add a `CLOUDFLARE_API_TOKEN` secret
+with the *Edit Cloudflare Workers* template and a job running `npm run deploy`.
 
 `npm test` is the interesting one. It builds numbered documents, imposes them,
 then re-reads the **output** PDF with pdf.js and asserts where each glyph landed
@@ -225,3 +245,9 @@ changes.
   image input mainly needs a loader that wraps each image in a page.
 - 16-page mini-zines (a different fold with two slits).
 - Creep compensation for thick signatures.
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE).
