@@ -21,11 +21,19 @@ export function getPaper(key: string): Paper {
   return PAPERS.find((p) => p.key === key) ?? PAPERS[0]!;
 }
 
-/** Both supported layouts fold a landscape sheet, so the long edge is always horizontal. */
+/** Long edge horizontal — what the 8-page zine and the booklet both fold. */
 export function landscape(paper: Paper): { width: number; height: number } {
   return {
     width: Math.max(paper.width, paper.height),
     height: Math.min(paper.width, paper.height),
+  };
+}
+
+/** Long edge vertical — a 4x4 grid on portrait stock yields portrait pages. */
+export function portrait(paper: Paper): { width: number; height: number } {
+  return {
+    width: Math.min(paper.width, paper.height),
+    height: Math.max(paper.width, paper.height),
   };
 }
 

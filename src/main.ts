@@ -2,7 +2,8 @@ import './style.css';
 import { PDFDocument } from 'pdf-lib';
 import { planBooklet } from './imposition/booklet.ts';
 import { MINI8_PAGES_PER_SHEET, planMini8 } from './imposition/mini8.ts';
-import { getPaper, landscape, PAPERS, UNITS, type UnitKey } from './imposition/paper.ts';
+import { MINI16_PAGES_PER_SHEET, planMini16 } from './imposition/mini16.ts';
+import { getPaper, landscape, PAPERS, portrait, UNITS, type UnitKey } from './imposition/paper.ts';
 import type { FitMode, ImpositionPlan } from './imposition/types.ts';
 import { parsePageRange } from './range.ts';
 import { renderPlan, type RenderResult, type SplitMode } from './render.ts';
@@ -33,6 +34,7 @@ const ui = {
   download: el<HTMLButtonElement>('download'),
   testdoc: el<HTMLButtonElement>('testdoc'),
   status: el<HTMLParagraphElement>('status'),
+  sheetInfo: el<HTMLParagraphElement>('sheet-info'),
   previewLabel: el<HTMLSpanElement>('preview-label'),
   viewer: el<HTMLIFrameElement>('viewer'),
   placeholder: el<HTMLDivElement>('placeholder'),
@@ -68,8 +70,20 @@ for (const paper of PAPERS) {
   ui.paper.append(option);
 }
 
+type Layout = 'mini8' | 'mini16' | 'booklet';
+
+function layout(): Layout {
+  const value = ui.layout.value;
+  return value === 'booklet' || value === 'mini16' ? value : 'mini8';
+}
+
 function isBooklet(): boolean {
-  return ui.layout.value === 'booklet';
+  return layout() === 'booklet';
+}
+
+/** Pages one sheet holds; for the booklet it depends on the signature size. */
+function pagesPerSheet(): number {
+  return layout() === 'mini16' ? MINI16_PAGES_PER_SHEET : MINI8_PAGES_PER_SHEET;
 }
 
 function syncVisibility(): void {
@@ -93,24 +107,51 @@ function buildPlan(pageCount: number): ImpositionPlan {
   const margins = { panel: toPoints(ui.panelMargin), edge: toPoints(ui.edgeMargin) };
   const guides = ui.guides.checked;
 
-  return isBooklet()
-    ? planBooklet(pageCount, {
+  switch (layout()) {
+    case 'booklet':
+      return planBooklet(pageCount, {
         paper,
         margins,
         guides,
         sheetsPerSignature: sheetsPerSignature(),
         binding: ui.binding.value === 'right' ? 'right' : 'left',
         rotateBacks: ui.flip.value === 'long',
-      })
-    : planMini8(pageCount, { paper, margins, guides });
+      });
+    case 'mini16':
+      return planMini16(pageCount, { paper, margins, guides });
+    default:
+      return planMini8(pageCount, { paper, margins, guides });
+  }
+}
+
+/** Sheet dimensions as the current layout orients them. */
+function sheetSize(): { width: number; height: number } {
+  const paper = getPaper(ui.paper.value);
+  return layout() === 'mini16' ? portrait(paper) : landscape(paper);
 }
 
 /** Panel dimensions for the current layout — used to size the test document. */
 function panelSize(): { width: number; height: number } {
-  const { width, height } = landscape(getPaper(ui.paper.value));
-  return isBooklet()
-    ? { width: width / 2, height }
-    : { width: width / 4, height: height / 2 };
+  const { width, height } = sheetSize();
+  switch (layout()) {
+    case 'booklet': return { width: width / 2, height };
+    case 'mini16': return { width: width / 4, height: height / 4 };
+    default: return { width: width / 4, height: height / 2 };
+  }
+}
+
+/** Describe the sheet and finished page size under the paper picker. */
+function syncSheetInfo(): void {
+  const inches = (points: number) => points / 72;
+  const { width, height } = sheetSize();
+  const panel = panelSize();
+  const unit = ui.units.value === 'in' ? 'in' : 'mm';
+  const show = (points: number) =>
+    unit === 'in' ? inches(points).toFixed(2) : (points / UNITS.mm).toFixed(0);
+
+  ui.sheetInfo.textContent =
+    `${show(width)} × ${show(height)} ${unit} ${width > height ? 'landscape' : 'portrait'}` +
+    ` · finished page ${show(panel.width)} × ${show(panel.height)} ${unit}`;
 }
 
 function setStatus(message: string, isError = false): void {
@@ -208,8 +249,9 @@ function describePlan(plan: ImpositionPlan, pageCount: number, result: RenderRes
     parts.push(`${plan.sheets.length} sides, duplex`);
   } else {
     const zines = plan.sheets.length;
-    if (zines > 1) parts.push(`${zines} separate mini-zines of 8 pages`);
+    if (zines > 1) parts.push(`${zines} separate mini-zines of ${pagesPerSheet()} pages`);
     parts.push('single-sided');
+    if (layout() === 'mini16') parts.push('3 cuts per sheet');
   }
 
   if (plan.blanksAdded > 0) {
@@ -266,6 +308,7 @@ ui.file.addEventListener('change', async () => {
 
 ui.layout.addEventListener('change', () => {
   syncVisibility();
+  syncSheetInfo();
   scheduleRegenerate();
 });
 
@@ -273,7 +316,10 @@ for (const control of [
   ui.paper, ui.signature, ui.binding, ui.flip, ui.split,
   ui.fit, ui.units, ui.guides, ui.numbers,
 ]) {
-  control.addEventListener('change', scheduleRegenerate);
+  control.addEventListener('change', () => {
+    syncSheetInfo();
+    scheduleRegenerate();
+  });
 }
 for (const control of [ui.range, ui.panelMargin, ui.edgeMargin]) {
   control.addEventListener('input', scheduleRegenerate);
@@ -289,7 +335,7 @@ ui.testdoc.addEventListener('click', async () => {
   const perSig = sheetsPerSignature();
   const pages = isBooklet()
     ? (perSig === 'single' ? 8 : perSig * 4)
-    : MINI8_PAGES_PER_SHEET;
+    : pagesPerSheet();
 
   const { width, height } = panelSize();
   setStatus('Building test document…');
@@ -299,4 +345,5 @@ ui.testdoc.addEventListener('click', async () => {
 });
 
 syncVisibility();
+syncSheetInfo();
 setStatus('');

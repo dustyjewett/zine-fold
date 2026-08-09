@@ -38,13 +38,15 @@
           <div class="field">
             <select id="layout">
               <option value="mini8">8-page mini-zine — 1 sheet, single-sided</option>
+              <option value="mini16">16-page mini-zine — 1 sheet, single-sided, 3 cuts</option>
               <option value="booklet">Half-page booklet — saddle stitch, duplex</option>
             </select>
           </div>
 
           <div class="field">
-            <label for="paper">Paper (used landscape)</label>
+            <label for="paper">Paper</label>
             <select id="paper"></select>
+            <p class="hint" id="sheet-info"></p>
           </div>
 
           <div class="field" data-when="booklet">

@@ -11,6 +11,7 @@ Two layouts:
 | Layout | Sheets | Sides | Result |
 | --- | --- | --- | --- |
 | **8-page mini-zine** | 1 per zine | single-sided | Classic fold-and-slit pocket zine |
+| **16-page mini-zine** | 1 per zine | single-sided | 4×4 grid, three slits, no staples |
 | **Half-page booklet** | 1..N | duplex | Saddle-stitched booklet, 1..N signatures |
 
 It runs entirely in the browser. Nothing is uploaded; the PDF never leaves the
@@ -148,6 +149,37 @@ upside down:
 
 A document longer than 8 pages becomes several independent mini-zines of 8.
 
+## Folding the 16-page mini-zine
+
+Still one sheet and still single-sided, but a 4×4 grid on **portrait** stock, so
+the pages come out portrait too — 2.13 × 2.75 in from Letter. Rows 1 and 3 print
+upside down:
+
+```
+        col 0   col 1   col 2   col 3
+row 0 |   ᔭ4      Ɛ3      ᄅ2      ⇂1     <- upside down
+      |------- cut -----------------|    slit from the RIGHT, 3 panels
+row 1 |    5       6       7       8
+      |--- cut ---------------|           slit from the LEFT, 3 panels
+row 2 |  ᄅ⇂12    ⇂⇂11    0⇂10     6 9     <- upside down
+      |------- cut -----------------|    slit from the RIGHT, 3 panels
+row 3 |   13      14      15      16
+```
+
+The three slits each stop one panel short, and the panel they spare is the hinge
+that carries you from one row to the next: `4→5` on the left, `8→9` on the
+right, `12→13` on the left again. That is what makes the whole sheet one
+continuous strip of sixteen panels in reading order, which is why the hinges —
+and so the slits — alternate sides.
+
+1. Crease all sixteen panels: fold in half and in half again both ways. Unfold.
+2. Cut the three dashed lines. Each stops at a fold, not the edge.
+3. Concertina the strip: start at page 1 (top right), following the numbers.
+   Each row folds back on the one below it, pivoting on its hinge.
+4. Press flat with page 1 facing out.
+
+Longer documents become several independent 16-page zines.
+
 ## Assembling the booklet
 
 Each signature is a stack of sheets folded together and stapled through the
@@ -271,8 +303,9 @@ changes.
 
 - Non-PDF input (images, `.docx`). `render.ts` takes a pdf-lib `PDFDocument`, so
   image input mainly needs a loader that wraps each image in a page.
-- 16-page mini-zines (a different fold with two slits).
 - Creep compensation for thick signatures.
+- The alternative 16-page fold used by some templates (e.g. Idaho Libraries'),
+  which routes the strip differently and needs its own panel map.
 
 ---
 
