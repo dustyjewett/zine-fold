@@ -11,9 +11,11 @@ import { readFile } from 'node:fs/promises';
 import { PDFDocument, degrees } from 'pdf-lib';
 import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { planBooklet } from '../src/imposition/booklet.ts';
+import { planICut } from '../src/imposition/i-cut.ts';
 import { planMini8 } from '../src/imposition/mini8.ts';
-import { planMini16 } from '../src/imposition/mini16.ts';
+import { planRiverCut } from '../src/imposition/river-cut.ts';
 import { getPaper, landscape, PAPERS, portrait } from '../src/imposition/paper.ts';
+import type { Guide } from '../src/imposition/types.ts';
 import { parsePageRange } from '../src/range.ts';
 import { renderPlan } from '../src/render.ts';
 import { buildTestDocument } from '../src/testdoc.ts';
@@ -68,6 +70,28 @@ function findNumber(glyphs: Glyph[], value: number): Glyph | undefined {
 
 const SHEET = landscape(getPaper('letter'));
 const NO_MARGINS = { panel: 0, edge: 0 };
+
+/**
+ * Render the cut guides in panel units so a slit pattern can be asserted as a
+ * readable string. "H y=2 x=0..3" is a horizontal slit along the second panel
+ * boundary up, running from the left edge across three panels.
+ */
+function describeCuts(guides: Guide[], pw: number, ph: number): string[] {
+  return guides
+    .filter((g) => g.kind === 'cut')
+    .map((g) => {
+      const lo = (v: number, unit: number) => (Math.min(v, v) / unit).toFixed(0);
+      if (Math.abs(g.y1 - g.y2) < 0.01) {
+        const x1 = (Math.min(g.x1, g.x2) / pw).toFixed(0);
+        const x2 = (Math.max(g.x1, g.x2) / pw).toFixed(0);
+        return `H y=${lo(g.y1, ph)} x=${x1}..${x2}`;
+      }
+      const y1 = (Math.min(g.y1, g.y2) / ph).toFixed(0);
+      const y2 = (Math.max(g.y1, g.y2) / ph).toFixed(0);
+      return `V x=${lo(g.x1, pw)} y=${y1}..${y2}`;
+    })
+    .sort();
+}
 
 async function imposeMini8(pages: number) {
   const testBytes = await buildTestDocument(pages, SHEET.width / 4, SHEET.height / 2);
@@ -167,102 +191,107 @@ section('mini-zine: short document pads to 8, long document splits');
   check('4 blanks added', long.blanksAdded === 4, `got ${long.blanksAdded}`);
 }
 
-section('16-page mini-zine: 4x4 snaking layout');
+section('cut derivation reproduces the known 8-page slit');
 {
-  const paper = getPaper('letter');
-  const sheet = portrait(paper);
-  const pw = sheet.width / 4;
-  const ph = sheet.height / 4;
-
-  const testBytes = await buildTestDocument(16, pw, ph);
-  const src = await PDFDocument.load(testBytes);
-  const plan = planMini16(16, { paper, margins: NO_MARGINS, guides: true });
-  const result = await renderPlan(src, plan, { fit: 'contain', numberOverlay: false }, 'combined', 'test');
-
-  check('one output sheet', plan.sheets.length === 1, `got ${plan.sheets.length}`);
-  check('sheet is portrait', sheet.height > sheet.width, `${sheet.width} x ${sheet.height}`);
-  check('no blanks needed', plan.blanksAdded === 0);
-
-  const glyphs = await readGlyphs(result.files[0]!.bytes, 1);
-  // row 0 is the top of the sheet; rows 0 and 2 print upside down
-  const expected: Record<number, { col: number; row: number }> = {
-    4: { col: 0, row: 0 }, 3: { col: 1, row: 0 }, 2: { col: 2, row: 0 }, 1: { col: 3, row: 0 },
-    5: { col: 0, row: 1 }, 6: { col: 1, row: 1 }, 7: { col: 2, row: 1 }, 8: { col: 3, row: 1 },
-    12: { col: 0, row: 2 }, 11: { col: 1, row: 2 }, 10: { col: 2, row: 2 }, 9: { col: 3, row: 2 },
-    13: { col: 0, row: 3 }, 14: { col: 1, row: 3 }, 15: { col: 2, row: 3 }, 16: { col: 3, row: 3 },
-  };
-
-  let placed = 0;
-  for (const [pageStr, want] of Object.entries(expected)) {
-    const n = Number(pageStr);
-    const g = findNumber(glyphs, n);
-    if (!g) { check(`page ${n} present`, false); continue; }
-    const col = Math.floor(g.x / pw);
-    const row = 3 - Math.floor(g.y / ph);
-    const wantAngle = want.row % 2 === 0 ? 180 : 0;
-    if (col === want.col && row === want.row && g.angle === wantAngle) placed++;
-    else {
-      check(`page ${n} → col ${want.col} row ${want.row} @${wantAngle}°`, false,
-        `got col ${col} row ${row} @${g.angle}°`);
-    }
-  }
-  check('all 16 panels placed and oriented correctly', placed === 16, `${placed}/16`);
-
-  // Consecutive pages must be orthogonally adjacent, or the strip is severed.
-  const cellOf = (n: number) => expected[n]!;
-  const breaks: string[] = [];
-  for (let n = 1; n < 16; n++) {
-    const a = cellOf(n);
-    const b = cellOf(n + 1);
-    if (Math.abs(a.col - b.col) + Math.abs(a.row - b.row) !== 1) breaks.push(`${n}->${n + 1}`);
-  }
-  check('every page neighbours the next', breaks.length === 0, breaks.join(' '));
+  // The 8-page zine's centre slit is long-established, so deriving it from the
+  // panel map instead of hard-coding it is a check on the derivation itself.
+  const sheet = landscape(getPaper('letter'));
+  const plan = planMini8(8, { paper: getPaper('letter'), margins: NO_MARGINS, guides: true });
+  const cuts = describeCuts(plan.sheets[0]!.guides, sheet.width / 4, sheet.height / 2);
+  check('one slit across the two middle panels', cuts.join(' | ') === 'H y=1 x=1..3', cuts.join(' | '));
 }
 
-section('16-page mini-zine: cuts leave exactly the right hinges');
-{
-  const paper = getPaper('letter');
-  const sheet = portrait(paper);
-  const pw = sheet.width / 4;
-  const ph = sheet.height / 4;
-  const plan = planMini16(16, { paper, margins: NO_MARGINS, guides: true });
-  const cuts = plan.sheets[0]!.guides.filter((g) => g.kind === 'cut');
+for (const variant of [
+  {
+    name: 'River Cut',
+    plan: planRiverCut,
+    cells: {
+      4: [0, 0], 3: [0, 1], 2: [0, 2], 1: [0, 3],
+      5: [1, 0], 6: [1, 1], 7: [1, 2], 8: [1, 3],
+      12: [2, 0], 11: [2, 1], 10: [2, 2], 9: [2, 3],
+      13: [3, 0], 14: [3, 1], 15: [3, 2], 16: [3, 3],
+    } as Record<number, [number, number]>,
+    // three slits entering from alternating edges — the meander
+    cuts: ['H y=1 x=1..4', 'H y=2 x=0..3', 'H y=3 x=1..4'],
+  },
+  {
+    name: '-\uA7AE- cut',
+    plan: planICut,
+    cells: {
+      9: [0, 0], 8: [0, 1], 7: [0, 2], 6: [0, 3],
+      10: [1, 0], 11: [1, 1], 4: [1, 2], 5: [1, 3],
+      13: [2, 0], 12: [2, 1], 3: [2, 2], 2: [2, 3],
+      14: [3, 0], 15: [3, 1], 16: [3, 2], 1: [3, 3],
+    } as Record<number, [number, number]>,
+    // a vertical stroke with a crossbar at each end, plus a dash at either edge
+    cuts: ['H y=1 x=1..3', 'H y=2 x=0..1', 'H y=2 x=3..4', 'H y=3 x=1..3', 'V x=2 y=1..3'],
+  },
+]) {
+  section(`16-page mini-zine: ${variant.name} panel map`);
+  {
+    const paper = getPaper('letter');
+    const sheet = portrait(paper);
+    const pw = sheet.width / 4;
+    const ph = sheet.height / 4;
 
-  check('three cuts', cuts.length === 3, `got ${cuts.length}`);
-  check('all cuts are horizontal', cuts.every((c) => Math.abs(c.y1 - c.y2) < 0.01));
+    const src = await PDFDocument.load(await buildTestDocument(16, pw, ph));
+    const plan = variant.plan(16, { paper, margins: NO_MARGINS, guides: true });
+    const out = await renderPlan(src, plan, { fit: 'contain', numberOverlay: false }, 'combined', 't');
 
-  // Ordered top to bottom: below row 0, row 1, row 2.
-  const byHeight = [...cuts].sort((a, b) => b.y1 - a.y1);
-  const spans = byHeight.map((c) => {
-    const x1 = Math.min(c.x1, c.x2) / pw;
-    const x2 = Math.max(c.x1, c.x2) / pw;
-    return `${x1.toFixed(0)}..${x2.toFixed(0)}`;
-  });
-  check('slits are right, left, right — 3 panels each',
-    spans.join(' ') === '1..4 0..3 1..4', spans.join(' '));
+    check('one output sheet', plan.sheets.length === 1, `got ${plan.sheets.length}`);
+    check('sheet is portrait', sheet.height > sheet.width);
+    check('no blanks needed', plan.blanksAdded === 0);
 
-  const heights = byHeight.map((c) => (c.y1 / ph).toFixed(0));
-  check('cuts sit on the row boundaries', heights.join(',') === '3,2,1', heights.join(','));
+    const glyphs = await readGlyphs(out.files[0]!.bytes, 1);
+    let placed = 0;
+    for (const [pageStr, [wantRow, wantCol]] of Object.entries(variant.cells)) {
+      const n = Number(pageStr);
+      const g = findNumber(glyphs, n);
+      if (!g) { check(`page ${n} present`, false); continue; }
+      const col = Math.floor(g.x / pw);
+      const row = 3 - Math.floor(g.y / ph);
+      const wantAngle = wantRow % 2 === 0 ? 180 : 0;
+      if (col === wantCol && row === wantRow && g.angle === wantAngle) placed++;
+      else check(`page ${n} -> row ${wantRow} col ${wantCol} @${wantAngle}deg`, false,
+        `got row ${row} col ${col} @${g.angle}deg`);
+    }
+    check('all 16 panels placed and oriented correctly', placed === 16, `${placed}/16`);
 
-  // The hinge is the panel each slit deliberately spares.
-  const hinges = byHeight.map((c) => (Math.min(c.x1, c.x2) < 0.01 ? 'right' : 'left'));
-  check('hinges alternate left, right, left', hinges.join(',') === 'left,right,left', hinges.join(','));
+    // The strip has to stay connected: consecutive pages must be neighbours.
+    const breaks: string[] = [];
+    for (let n = 1; n < 16; n++) {
+      const a = variant.cells[n]!;
+      const b = variant.cells[n + 1]!;
+      if (Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) !== 1) breaks.push(`${n}->${n + 1}`);
+    }
+    check('every page neighbours the next', breaks.length === 0, breaks.join(' '));
+  }
+
+  section(`16-page mini-zine: ${variant.name} slits`);
+  {
+    const paper = getPaper('letter');
+    const sheet = portrait(paper);
+    const plan = variant.plan(16, { paper, margins: NO_MARGINS, guides: true });
+    const cuts = describeCuts(plan.sheets[0]!.guides, sheet.width / 4, sheet.height / 4);
+    check(`slits match the ${variant.name} pattern`,
+      cuts.join(' | ') === variant.cuts.join(' | '),
+      cuts.join(' | '));
+  }
 }
 
 section('16-page mini-zine: padding and multiple zines');
 {
   const paper = getPaper('letter');
-  const short = planMini16(10, { paper, margins: NO_MARGINS, guides: false });
+  const short = planRiverCut(10, { paper, margins: NO_MARGINS, guides: false });
   check('10 pages still one sheet', short.sheets.length === 1);
   check('6 blanks added', short.blanksAdded === 6, `got ${short.blanksAdded}`);
 
-  const long = planMini16(40, { paper, margins: NO_MARGINS, guides: false });
+  const long = planICut(40, { paper, margins: NO_MARGINS, guides: false });
   check('40 pages make 3 zines', long.sheets.length === 3, `got ${long.sheets.length}`);
   check('8 blanks added', long.blanksAdded === 8, `got ${long.blanksAdded}`);
-  const secondSheetPages = long.sheets[1]!.slots.map((s) => s.readerPage).sort((a, b) => a - b);
-  check('second zine covers pages 17-32',
-    secondSheetPages[0] === 17 && secondSheetPages[15] === 32,
-    `${secondSheetPages[0]}..${secondSheetPages[15]}`);
+  const second = long.sheets[1]!.slots.map((s) => s.readerPage).sort((a, b) => a - b);
+  check('second zine covers pages 17-32', second[0] === 17 && second[15] === 32,
+    `${second[0]}..${second[15]}`);
 }
 
 section('booklet: saddle-stitch page order, backs upright');
@@ -451,7 +480,7 @@ section('ui wiring: every element main.ts grabs exists in index.html');
 
   // Options the code branches on have to exist as real <option> values.
   for (const [select, values] of Object.entries({
-    layout: ['mini8', 'mini16', 'booklet'],
+    layout: ['mini8', 'river-cut', 'i-cut', 'booklet'],
     fit: ['contain', 'cover', 'stretch'],
     flip: ['short', 'long'],
     split: ['combined', 'split'],

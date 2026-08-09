@@ -2,7 +2,8 @@ import './style.css';
 import { PDFDocument } from 'pdf-lib';
 import { planBooklet } from './imposition/booklet.ts';
 import { MINI8_PAGES_PER_SHEET, planMini8 } from './imposition/mini8.ts';
-import { MINI16_PAGES_PER_SHEET, planMini16 } from './imposition/mini16.ts';
+import { planICut } from './imposition/i-cut.ts';
+import { planRiverCut } from './imposition/river-cut.ts';
 import { getPaper, landscape, PAPERS, portrait, UNITS, type UnitKey } from './imposition/paper.ts';
 import type { FitMode, ImpositionPlan } from './imposition/types.ts';
 import { parsePageRange } from './range.ts';
@@ -70,20 +71,24 @@ for (const paper of PAPERS) {
   ui.paper.append(option);
 }
 
-type Layout = 'mini8' | 'mini16' | 'booklet';
+type Layout = 'mini8' | 'river-cut' | 'i-cut' | 'booklet';
 
 function layout(): Layout {
   const value = ui.layout.value;
-  return value === 'booklet' || value === 'mini16' ? value : 'mini8';
+  return value === 'booklet' || value === 'river-cut' || value === 'i-cut' ? value : 'mini8';
 }
 
 function isBooklet(): boolean {
   return layout() === 'booklet';
 }
 
+function is16Page(): boolean {
+  return layout() === 'river-cut' || layout() === 'i-cut';
+}
+
 /** Pages one sheet holds; for the booklet it depends on the signature size. */
 function pagesPerSheet(): number {
-  return layout() === 'mini16' ? MINI16_PAGES_PER_SHEET : MINI8_PAGES_PER_SHEET;
+  return is16Page() ? 16 : MINI8_PAGES_PER_SHEET;
 }
 
 function syncVisibility(): void {
@@ -117,8 +122,10 @@ function buildPlan(pageCount: number): ImpositionPlan {
         binding: ui.binding.value === 'right' ? 'right' : 'left',
         rotateBacks: ui.flip.value === 'long',
       });
-    case 'mini16':
-      return planMini16(pageCount, { paper, margins, guides });
+    case 'river-cut':
+      return planRiverCut(pageCount, { paper, margins, guides });
+    case 'i-cut':
+      return planICut(pageCount, { paper, margins, guides });
     default:
       return planMini8(pageCount, { paper, margins, guides });
   }
@@ -127,7 +134,7 @@ function buildPlan(pageCount: number): ImpositionPlan {
 /** Sheet dimensions as the current layout orients them. */
 function sheetSize(): { width: number; height: number } {
   const paper = getPaper(ui.paper.value);
-  return layout() === 'mini16' ? portrait(paper) : landscape(paper);
+  return is16Page() ? portrait(paper) : landscape(paper);
 }
 
 /** Panel dimensions for the current layout — used to size the test document. */
@@ -135,7 +142,8 @@ function panelSize(): { width: number; height: number } {
   const { width, height } = sheetSize();
   switch (layout()) {
     case 'booklet': return { width: width / 2, height };
-    case 'mini16': return { width: width / 4, height: height / 4 };
+    case 'river-cut':
+    case 'i-cut': return { width: width / 4, height: height / 4 };
     default: return { width: width / 4, height: height / 2 };
   }
 }
@@ -251,7 +259,8 @@ function describePlan(plan: ImpositionPlan, pageCount: number, result: RenderRes
     const zines = plan.sheets.length;
     if (zines > 1) parts.push(`${zines} separate mini-zines of ${pagesPerSheet()} pages`);
     parts.push('single-sided');
-    if (layout() === 'mini16') parts.push('3 cuts per sheet');
+    const slits = plan.sheets[0]?.guides.filter((g) => g.kind === 'cut').length ?? 0;
+    if (slits > 0) parts.push(`${slits} slit${slits === 1 ? '' : 's'} per sheet`);
   }
 
   if (plan.blanksAdded > 0) {

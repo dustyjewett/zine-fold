@@ -6,12 +6,13 @@ Turns a PDF into a **fold-ready** PDF: one output page per side of paper, alread
 imposed. You print it 1-per-sheet with plain duplex — no "multiple pages per
 sheet", no booklet mode, nothing for the print driver to get wrong.
 
-Two layouts:
+Four layouts:
 
 | Layout | Sheets | Sides | Result |
 | --- | --- | --- | --- |
 | **8-page mini-zine** | 1 per zine | single-sided | Classic fold-and-slit pocket zine |
-| **16-page mini-zine** | 1 per zine | single-sided | 4×4 grid, three slits, no staples |
+| **16-page — River Cut** | 1 per zine | single-sided | 4×4 grid, 3 slits, snaking route |
+| **16-page — -Ɪ- cut** | 1 per zine | single-sided | 4×4 grid, 5 slits, spiral route |
 | **Half-page booklet** | 1..N | duplex | Saddle-stitched booklet, 1..N signatures |
 
 It runs entirely in the browser. Nothing is uploaded; the PDF never leaves the
@@ -89,8 +90,10 @@ updating is just a rebuild.
 "fit to page", which shrinks the sheet a few percent and pulls your margins off
 the fold lines. This is the single most common way to get a wonky zine.
 
-The output pages are already the size of the paper you picked, in landscape.
-Let the driver rotate them onto portrait stock; don't set landscape yourself.
+The output pages are already the size of the paper you picked, oriented the way
+that layout needs — landscape for the 8-page zine and the booklet, portrait for
+the two 16-page folds. Let the driver place them; don't override the orientation
+yourself. The picker under *Paper* shows the sheet and finished page size.
 
 ### Mini-zine
 
@@ -133,7 +136,7 @@ upside down:
 
 ```
 +-----+-----+-----+-----+
-|  ᘔ5 |  ᘔ4 |  ᘔ3 |  ᘔ2 |   <- upside down
+|  5  |  4  |  3  |  2  |   <- this row prints upside down
 +-----+-----+-----+-----+
 |  6  |  7  |  8  |  1  |   <- page 1 is the front cover
 +-----+-----+-----+-----+
@@ -149,36 +152,69 @@ upside down:
 
 A document longer than 8 pages becomes several independent mini-zines of 8.
 
-## Folding the 16-page mini-zine
+## The two 16-page folds
 
-Still one sheet and still single-sided, but a 4×4 grid on **portrait** stock, so
-the pages come out portrait too — 2.13 × 2.75 in from Letter. Rows 1 and 3 print
-upside down:
+Both put sixteen panels on one side of a **portrait** sheet — 2.13 × 2.75 in
+pages from Letter — and both are scissors-only: no duplex, no staples, no
+trimming. They differ in how the reading order is routed across the grid, and
+therefore in where the paper has to be slit.
+
+Consecutive pages must stay joined, so every boundary between neighbouring
+panels that the route does *not* travel through has to be cut. That means the
+slits are not a separate fact to get wrong: `strip.ts` derives them from the
+panel map, and the same derivation reproduces the 8-page zine's long-established
+centre slit, which is how it's checked.
+
+### River Cut
 
 ```
         col 0   col 1   col 2   col 3
-row 0 |   ᔭ4      Ɛ3      ᄅ2      ⇂1     <- upside down
-      |------- cut -----------------|    slit from the RIGHT, 3 panels
+row 0 |    4       3       2       1     <- prints upside down
+      |------- cut -----------------|    slit from the RIGHT
 row 1 |    5       6       7       8
-      |--- cut ---------------|           slit from the LEFT, 3 panels
-row 2 |  ᄅ⇂12    ⇂⇂11    0⇂10     6 9     <- upside down
-      |------- cut -----------------|    slit from the RIGHT, 3 panels
+      |--- cut ---------------|          slit from the LEFT
+row 2 |   12      11      10       9     <- prints upside down
+      |------- cut -----------------|    slit from the RIGHT
 row 3 |   13      14      15      16
 ```
 
-The three slits each stop one panel short, and the panel they spare is the hinge
-that carries you from one row to the next: `4→5` on the left, `8→9` on the
-right, `12→13` on the left again. That is what makes the whole sheet one
-continuous strip of sixteen panels in reading order, which is why the hinges —
-and so the slits — alternate sides.
+The route simply snakes along each row and turns at alternating ends. Each slit
+stops one panel short, and the spared panel is the hinge into the next row:
+`4→5` on the left, `8→9` on the right, `12→13` on the left again. The slits
+enter from alternating edges — the meander the name refers to.
 
 1. Crease all sixteen panels: fold in half and in half again both ways. Unfold.
-2. Cut the three dashed lines. Each stops at a fold, not the edge.
-3. Concertina the strip: start at page 1 (top right), following the numbers.
-   Each row folds back on the one below it, pivoting on its hinge.
+2. Cut the three lines. Each stops at a fold, not the edge.
+3. Concertina the strip, following the numbers from page 1 at the top right.
 4. Press flat with page 1 facing out.
 
-Longer documents become several independent 16-page zines.
+### -Ɪ- cut
+
+```
+        col 0   col 1   col 2   col 3
+row 0 |    9       8       7       6     <- prints upside down
+      |       |------ cut -------|       crossbar
+row 1 |   10      11       4       5
+      |-cut-|      |            |-cut-|  dashes at both edges,
+      |            | cut        |        stroke down the middle
+row 2 |   13      12       3       2     <- prints upside down
+      |       |------ cut -------|       crossbar
+row 3 |   14      15      16       1     <- page 1 is the cover
+```
+
+The route spirals instead: out from the cover at the bottom right, up around
+the right half, across the top, then back down the left. Pages 16 and 1 finish
+side by side and that boundary is left uncut — it is the spine the zine wraps
+shut on, exactly as pages 8 and 1 do in the 8-page fold.
+
+Slitting everything the route doesn't use leaves a vertical stroke down the
+middle with a crossbar at each end, plus a short dash at either edge on the
+centre line. That shape is the name.
+
+Adapted from the Idaho Commission for Libraries template, renumbered so the
+front cover is page 1 and the back cover is page 16.
+
+A document longer than 16 pages becomes several independent zines, either way.
 
 ## Assembling the booklet
 
@@ -304,8 +340,6 @@ changes.
 - Non-PDF input (images, `.docx`). `render.ts` takes a pdf-lib `PDFDocument`, so
   image input mainly needs a loader that wraps each image in a page.
 - Creep compensation for thick signatures.
-- The alternative 16-page fold used by some templates (e.g. Idaho Libraries'),
-  which routes the strip differently and needs its own panel map.
 
 ---
 
