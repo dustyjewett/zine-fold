@@ -9,7 +9,9 @@
  */
 import { readFile } from 'node:fs/promises';
 import { PDFDocument, degrees } from 'pdf-lib';
+import { unzipSync } from 'fflate';
 import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { buildDocxTemplate } from '../src/docx.ts';
 import { planBooklet } from '../src/imposition/booklet.ts';
 import { readmeDiagrams } from './diagram.ts';
 import { planDuplex12 } from '../src/imposition/duplex12.ts';
@@ -604,6 +606,81 @@ section('README fold diagrams match the layouts they document');
   check('diagrams use a single-cell glyph for vertical slits',
     [...Object.values(readmeDiagrams()).join('')].every((c) => c !== '︴'),
     'a wide character would break the monospace grid');
+}
+
+section('Word template is a valid docx sized to the panel');
+{
+  // unzipSync is an independent ZIP implementation, so it checks the archive
+  // this project hand-writes rather than merely re-reading it with the same code.
+  // It verifies CRCs, so a corrupt entry throws rather than passing quietly.
+  const letter = getPaper('letter');
+  const micro = portrait(letter);          // 16-page folds: sixteenth of a sheet
+  const mini = landscape(letter);          // 8- and 12-page: eighth of a sheet
+
+  const bytes = buildDocxTemplate({
+    pageCount: 16,
+    widthPt: micro.width / 4,
+    heightPt: micro.height / 4,
+    marginPt: 8.5,
+    pagesPerZine: 16,
+    layoutName: '16-page micro zine — River Cut',
+  });
+
+  check('starts with the ZIP magic number',
+    bytes[0] === 0x50 && bytes[1] === 0x4b, `${bytes[0]},${bytes[1]}`);
+
+  const parts = unzipSync(bytes);
+  const names = Object.keys(parts).sort();
+  check('holds exactly the three parts Word needs',
+    names.join(' | ') === '[Content_Types].xml | _rels/.rels | word/document.xml',
+    names.join(' | '));
+
+  const xml = new TextDecoder().decode(parts['word/document.xml']!);
+
+  // Letter portrait / 4 = 153 x 198 pt, and Word counts in twentieths of a point.
+  const pgSz = /<w:pgSz w:w="(\d+)" w:h="(\d+)"/.exec(xml);
+  check('page is one panel: 153 x 198 pt in twips',
+    pgSz?.[1] === '3060' && pgSz?.[2] === '3960', pgSz?.slice(1).join(' x ') ?? 'no pgSz');
+  check('margin carried through', /<w:pgMar w:top="170"/.test(xml));
+  check('portrait panels get no landscape flag', !xml.includes('w:orient'));
+
+  const breaks = xml.match(/<w:br w:type="page"\/>/g)?.length ?? 0;
+  check('15 breaks makes 16 pages', breaks === 15, `${breaks}`);
+  check('page 1 names the layout', xml.includes('Page 1 — front cover · 16-page micro zine'));
+  check('page 16 is marked the back cover', xml.includes('Page 16 — back cover'));
+
+  // A run spanning several zines repeats the covers, as the test PDF does.
+  const long = new TextDecoder().decode(
+    unzipSync(buildDocxTemplate({
+      pageCount: 24, widthPt: 100, heightPt: 200, marginPt: 5,
+      pagesPerZine: 16, layoutName: 'x',
+    }))['word/document.xml']!);
+  check('multi-zine run repeats the covers',
+    long.includes('Page 17 — front cover') && long.includes('Page 24 — back cover'));
+
+  // A mini zine panel is an eighth of a landscape sheet: 198 x 306 pt.
+  const miniXml = new TextDecoder().decode(
+    unzipSync(buildDocxTemplate({
+      pageCount: 8, widthPt: mini.width / 4, heightPt: mini.height / 2, marginPt: 0,
+      pagesPerZine: 8, layoutName: 'y',
+    }))['word/document.xml']!);
+  check('mini zine panel is 198 x 306 pt',
+    /<w:pgSz w:w="3960" w:h="6120"/.test(miniXml),
+    /<w:pgSz[^/]*/.exec(miniXml)?.[0] ?? '');
+
+  // Landscape panels must carry the orientation flag or Word rotates them back.
+  const wide = new TextDecoder().decode(
+    unzipSync(buildDocxTemplate({
+      pageCount: 1, widthPt: 400, heightPt: 200, marginPt: 0, pagesPerZine: 1, layoutName: 'z',
+    }))['word/document.xml']!);
+  check('a landscape panel is flagged landscape', wide.includes('w:orient="landscape"'));
+
+  const twice = buildDocxTemplate({
+    pageCount: 16, widthPt: micro.width / 4, heightPt: micro.height / 4,
+    marginPt: 8.5, pagesPerZine: 16, layoutName: '16-page micro zine — River Cut',
+  });
+  check('output is byte-for-byte reproducible',
+    Buffer.from(bytes).equals(Buffer.from(twice)));
 }
 
 section('page range parsing');

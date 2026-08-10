@@ -9,6 +9,7 @@ import { getPaper, landscape, PAPERS, portrait, UNITS, type UnitKey } from './im
 import type { FitMode, ImpositionPlan } from './imposition/types.ts';
 import { parsePageRange } from './range.ts';
 import { renderPlan, type RenderResult, type SplitMode } from './render.ts';
+import { buildDocxTemplate } from './docx.ts';
 import { buildTestDocument } from './testdoc.ts';
 
 const el = <T extends HTMLElement>(id: string): T => {
@@ -36,6 +37,7 @@ const ui = {
   download: el<HTMLButtonElement>('download'),
   testdoc: el<HTMLButtonElement>('testdoc'),
   testdocPages: el<HTMLSelectElement>('testdoc-pages'),
+  docx: el<HTMLButtonElement>('docx'),
   status: el<HTMLParagraphElement>('status'),
   sheetInfo: el<HTMLParagraphElement>('sheet-info'),
   previewLabel: el<HTMLSpanElement>('preview-label'),
@@ -299,10 +301,8 @@ function describePlan(plan: ImpositionPlan, pageCount: number, result: RenderRes
   return parts.join(' · ');
 }
 
-function saveBytes(name: string, bytes: Uint8Array): void {
-  const url = URL.createObjectURL(
-    new Blob([bytes.slice().buffer as ArrayBuffer], { type: 'application/pdf' }),
-  );
+function saveBytes(name: string, bytes: Uint8Array, type = 'application/pdf'): void {
+  const url = URL.createObjectURL(new Blob([bytes.slice().buffer as ArrayBuffer], { type }));
   const link = document.createElement('a');
   link.href = url;
   link.download = name;
@@ -375,10 +375,39 @@ function pagesPerZine(): number {
   return perSig === 'single' ? 8 : perSig * 4;
 }
 
-ui.testdoc.addEventListener('click', async () => {
+/** How many pages the starter files should hold. */
+function starterPages(): { pages: number; per: number } {
   const per = pagesPerZine();
   const choice = ui.testdocPages.value;
-  const pages = choice === 'auto' ? per : Number(choice);
+  return { pages: choice === 'auto' ? per : Number(choice), per };
+}
+
+ui.docx.addEventListener('click', () => {
+  const { pages, per } = starterPages();
+  const panel = panelSize();
+  const layoutName = ui.layout.options[ui.layout.selectedIndex]?.text ?? layout();
+
+  const bytes = buildDocxTemplate({
+    pageCount: pages,
+    widthPt: panel.width,
+    heightPt: panel.height,
+    // Match the app's own panel inset so the safe area is visible while writing.
+    marginPt: toPoints(ui.panelMargin),
+    pagesPerZine: per,
+    layoutName,
+  });
+
+  saveBytes(
+    `zine-template-${layout()}-${pages}pp.docx`,
+    bytes,
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  );
+  const size = `${(panel.width / 72).toFixed(2)} × ${(panel.height / 72).toFixed(2)} in`;
+  setStatus(`Word template saved — ${pages} blank pages at ${size}. Write, export as PDF, load it back here.`);
+});
+
+ui.testdoc.addEventListener('click', async () => {
+  const { pages, per } = starterPages();
 
   const { width, height } = panelSize();
   setStatus('Building test document…');

@@ -144,6 +144,21 @@ instead lets you check a run that spans several — the covers are marked per
 zine, so you can see where each one starts and ends, and the last zine pads
 with blanks. 24 pages in a 16-page layout is the awkward case worth trying.
 
+## Writing the pages
+
+**Word template** gives you the same thing blank: a `.docx` whose page size is
+one panel of the current layout, so you write at the finished size instead of
+guessing and letting the imposer scale. Change the layout or the paper and the
+template changes with it — a micro zine on Letter is 2.13 × 2.75 in, a mini zine
+2.75 × 4.25 in, and the picker under *Paper* shows it before you download.
+
+Write, export to PDF, load that back in. Page margins come from the *Around each
+panel* setting so the safe area is visible while writing; the imposer applies
+its own inset on top, so keep anything important away from the very edge.
+
+It opens in Word, Pages, LibreOffice and Google Docs. Google Docs preserves the
+custom page size on import but check it survives the round trip back out.
+
 This is worth doing once per printer. It is much faster than reasoning about
 duplex flip conventions, and it's the ground truth if anything below disagrees
 with your paper.

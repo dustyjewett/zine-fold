@@ -150,7 +150,7 @@
         </fieldset>
 
         <fieldset>
-          <legend>Test document</legend>
+          <legend>Starter files</legend>
           <div class="field">
             <label for="testdoc-pages">Length</label>
             <select id="testdoc-pages">
@@ -160,17 +160,21 @@
               <option value="24">24 pages</option>
               <option value="32">32 pages</option>
             </select>
-            <p class="hint">
-              Numbered dummy pages sized to one panel of the current layout. Pick a
-              length past what one zine holds to check how the run splits — the
-              covers are marked per zine, and the last one pads with blanks.
-            </p>
           </div>
+          <div class="actions">
+            <button type="button" id="testdoc" class="secondary">Test PDF</button>
+            <button type="button" id="docx" class="secondary">Word template</button>
+          </div>
+          <p class="hint">
+            Both are sized to one panel of the current layout, with covers marked per
+            zine. The <strong>test PDF</strong> is numbered — impose it, print, fold, and
+            check the pages run in order. The <strong>Word template</strong> is blank
+            pages at the finished size, to write in and export back as a PDF.
+          </p>
         </fieldset>
 
         <div class="actions">
           <button type="button" id="download" disabled>Download</button>
-          <button type="button" id="testdoc" class="secondary">Test document</button>
         </div>
 
         <p class="status" id="status" role="status"></p>
