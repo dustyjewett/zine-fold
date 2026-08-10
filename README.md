@@ -326,6 +326,19 @@ stack together, fold, staple twice through the spine.
 
 ---
 
+## An example
+
+[`examples/how-to-make-a-zine/`](examples/how-to-make-a-zine/) is an 8-page mini
+zine about making 8-page mini zines, built with this project — print
+`how-to-make-a-zine-imposed.pdf` single-sided, fold, cut, done.
+
+Its page-order diagram is rendered from `planMini8` rather than drawn, so the
+zine cannot teach a layout the code does not produce. `npm run example` rebuilds
+it, and CI builds it on every push for the same reason the README diagrams are
+generated: a layout change should break anything that documents the old one.
+
+---
+
 ## Privacy
 
 The app reads your file with `FileReader` and builds the output PDF in memory.

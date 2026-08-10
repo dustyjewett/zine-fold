@@ -15,7 +15,8 @@
     "deploy": "npm run build && wrangler deploy",
     "deploy:preview": "npm run build && wrangler versions upload",
     "test:live": "ZINE_URL=https://zine-fold.com/ node --experimental-strip-types test/browser.ts",
-    "diagrams": "node --experimental-strip-types test/diagram.ts"
+    "diagrams": "node --experimental-strip-types test/diagram.ts",
+    "example": "node --experimental-strip-types examples/how-to-make-a-zine/build.ts"
   },
   "dependencies": {
     "pdf-lib": "^1.17.1"
